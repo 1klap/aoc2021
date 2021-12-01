@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+input = File.readlines 'input/data.txt'
+acc = 0
+input.each_with_index do |_, index|
+  next if index < 3
+
+  measurment1 = input[(index - 3)..(index - 1)].map(&:to_i).reduce(&:+)
+  measurment2 = input[(index - 2)..index].map(&:to_i).reduce(&:+)
+  acc += 1 if measurment2 > measurment1
+  # puts "m2 > m1: #{measurment2 > measurment1} #{measurment2} > #{measurment1}"
+end
+puts acc
