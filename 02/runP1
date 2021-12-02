@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+input_lines = File.readlines 'input/data.txt'
+pos_x = 0
+pos_y = 0
+input_lines.each do |line|
+  parts = line.split ' '
+  distance = parts[1].to_i
+  case parts[0]
+  when 'forward'
+    pos_x += distance
+  when 'down'
+    pos_y += distance
+  when 'up'
+    pos_y -= distance
+  end
+end
+puts "pos_x: #{pos_x}, pos_y: #{pos_y}"
+puts "result: #{pos_x * pos_y}"
