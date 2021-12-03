@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def count_occ_index(lines, index, match_against)
+  acc = 0
+  lines.each do |line|
+    acc += 1 if line[index] == match_against
+  end
+  acc
+end
+
+def binarray_to_i(array)
+  acc = 0
+  array.reverse.each_with_index do |i, index|
+    acc += 2**index if i == 1
+  end
+  acc
+end
+
+def filter_lines(lines, index, operator)
+  count_ones = count_occ_index lines, index, '1'
+  match_against = count_ones.send(operator, (lines.size - count_ones)) ? '1' : '0'
+  lines.filter { |line| line[index] == match_against }
+end
+
+def bit_filter(lines, operator)
+  index = 0
+  while lines.size > 1 && index < lines[0].size
+    lines = filter_lines lines, index, operator
+    index += 1
+  end
+  lines[0] if lines.size == 1
+end
+
+input_lines = File.readlines 'input/data.txt'
+input_lines = input_lines.map(&:strip)
+
+o2_generator_rating_bin = bit_filter input_lines, :>=
+co2_scrubber_rating_bin = bit_filter input_lines, :<
+o2_generator_rating = binarray_to_i o2_generator_rating_bin.chars.map(&:to_i)
+co2_scrubber_rating = binarray_to_i co2_scrubber_rating_bin.chars.map(&:to_i)
+puts "o2_generator_rating: #{o2_generator_rating}"
+puts "co2_scrubber_rating: #{co2_scrubber_rating}"
+puts "result: #{ o2_generator_rating * co2_scrubber_rating}"

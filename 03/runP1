@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def count_occ(input_lines, match_against)
+  occ_counts = Array.new(input_lines[0].size, 0)
+  input_lines.each do |line|
+    (0...line.size).each do |index|
+      occ_counts[index] += 1 if line[index] == match_against
+    end
+  end
+  occ_counts
+end
+
+def binarray_to_i(array)
+  acc = 0
+  array.reverse.each_with_index do |i, index|
+    acc += 2**index if i == 1
+  end
+  acc
+end
+
+input_lines = File.readlines 'input/data.txt'
+input_lines = input_lines.map(&:strip)
+
+occ_counts = count_occ(input_lines, '1')
+# puts "one_count: #{occ_counts}"
+gamma_bin = occ_counts.map { |occ| occ > (input_lines.size / 2) ? 1 : 0 }
+epsilon_bin = occ_counts.map { |occ| occ < (input_lines.size / 2) ? 1 : 0 }
+# puts "gamma_bin: #{gamma_bin}"
+gamma = binarray_to_i(gamma_bin)
+# puts "gamma: #{gamma}"
+# puts "epsilon_bin: #{epsilon_bin}"
+espilon = binarray_to_i(epsilon_bin)
+# puts "espilon: #{espilon}"
+puts "result: #{gamma * espilon}"
+
+
