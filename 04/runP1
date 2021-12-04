@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+class BoardPos
+  attr_accessor :number, :marked
+
+  def initialize(number)
+    @number = number
+    @marked = false
+  end
+end
+
+class BingoBoard
+  attr_accessor :positions
+
+  GRID_SIZE = 5
+
+  def initialize
+    @positions = []
+  end
+
+  def self.parse(input)
+    board = BingoBoard.new
+    input.split("\n").join(' ').split(/\s+/).each do |number|
+      board.positions << BoardPos.new(number.to_i)
+    end
+    board
+  end
+
+  def mark(number)
+    @positions.filter { |pos| pos.number == number }
+              .each { |pos| pos.marked = true }
+  end
+
+  def won?
+    (0..4).each do |i|
+      if positions[0 + (i * GRID_SIZE)].marked &&
+         positions[1 + (i * GRID_SIZE)].marked &&
+         positions[2 + (i * GRID_SIZE)].marked &&
+         positions[3 + (i * GRID_SIZE)].marked &&
+         positions[4 + (i * GRID_SIZE)].marked
+        return true
+      end
+      if positions[i].marked &&
+         positions[i + (1 * GRID_SIZE)].marked &&
+         positions[i + (2 * GRID_SIZE)].marked &&
+         positions[i + (3 * GRID_SIZE)].marked &&
+         positions[i + (4 * GRID_SIZE)].marked
+        return true
+      end
+    end
+    false
+  end
+end
+
+input = File.read 'input/data.txt'
+input_parts = input.split "\n\n"
+draw = input_parts[0].split(',').map(&:to_i)
+
+boards = []
+winner = nil
+winner_draw = nil
+input_parts[1...input_parts.size].each do |part|
+  boards << BingoBoard.parse(part)
+end
+catch :winner do
+  draw.each do |nb|
+    boards.each do |board|
+      board.mark nb
+      if board.won?
+        winner = board
+        winner_draw = nb
+        throw :winner
+      end
+    end
+  end
+end
+if winner
+  unmarked_sum = winner.positions.filter { |pos| !pos.marked }.map(&:number).sum
+  result = unmarked_sum * winner_draw
+  puts "result: #{result}"
+end
