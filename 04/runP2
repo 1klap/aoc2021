@@ -32,22 +32,22 @@ class BingoBoard
               .each { |pos| pos.marked = true }
   end
 
+  def col_won?(number)
+    (0...GRID_SIZE)
+      .map { |pos| positions[number + (pos * GRID_SIZE)].marked }
+      .reduce(true) { |acc, val| acc && val }
+  end
+
+  def row_won?(number)
+    (0...GRID_SIZE)
+      .map { |pos| positions[pos + (number * GRID_SIZE)].marked }
+      .reduce(true) { |acc, val| acc && val }
+  end
+
   def won?
-    (0..4).each do |i|
-      if positions[0 + (i * GRID_SIZE)].marked &&
-         positions[1 + (i * GRID_SIZE)].marked &&
-         positions[2 + (i * GRID_SIZE)].marked &&
-         positions[3 + (i * GRID_SIZE)].marked &&
-         positions[4 + (i * GRID_SIZE)].marked
-        return true
-      end
-      if positions[i].marked &&
-         positions[i + (1 * GRID_SIZE)].marked &&
-         positions[i + (2 * GRID_SIZE)].marked &&
-         positions[i + (3 * GRID_SIZE)].marked &&
-         positions[i + (4 * GRID_SIZE)].marked
-        return true
-      end
+    (0...GRID_SIZE).each do |i|
+      return true if col_won? i
+      return true if row_won? i
     end
     false
   end
