@@ -5,10 +5,10 @@ input = File.read 'input/data.txt'
 input_parts = input.strip.split(',').map(&:to_i)
 
 def fuel_cost_move_to(row, positions)
-  positions.map { |pos| sumorial (pos - row).abs }.sum
+  positions.map { |pos| sumial (pos - row).abs }.sum
 end
 
-def sumorial(number)
+def sumial(number)
   (1..number).sum
 end
 
