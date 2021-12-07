@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+input = File.read 'input/data.txt'
+input_parts = input.strip.split(',').map(&:to_i)
+
+def fuel_cost_move_to(row, positions)
+  positions.map { |pos| sumorial (pos - row).abs }.sum
+end
+
+def sumorial(number)
+  (1..number).sum
+end
+
+min_fuel = nil
+min_row = nil
+(input_parts.min..input_parts.max).each do |row|
+  fuel = fuel_cost_move_to row, input_parts
+  if !min_fuel || fuel < min_fuel
+    min_fuel = fuel
+    min_row = row
+  end
+end
+
+puts "result: #{min_fuel} (row: #{min_row})"
