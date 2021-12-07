@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def count_intersections(vent_lines)
+  floor_map = Hash.new(0)
+  vent_lines.each do |line|
+    line.passing_points.each do |point|
+      floor_map[point] += 1
+    end
+  end
+  floor_map.values.filter { |v| v > 1 }.count
+end
+
+VentLine = Struct.new(:pos1, :pos2) do
+  def passing_points
+    step_x = pos2.x <=> pos1.x
+    step_y = pos2.y <=> pos1.y
+    next_pos = Point.new(pos1.x, pos1.y)
+    acc = []
+    while next_pos != pos2
+      acc << Point.new(next_pos.x, next_pos.y)
+      next_pos.x += step_x
+      next_pos.y += step_y
+    end
+    acc << Point.new(pos2.x, pos2.y)
+    acc.map { |p| "#{p.x}##{p.y}" }
+  end
+end
+
+Point = Struct.new(:x, :y) do
+  def self.parse(from)
+    parts = from.split(',')
+    Point.new(parts[0].to_i, parts[1].to_i)
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+vent_lines = []
+input_lines.each do |line|
+  points = line.split('->').map(&:strip).map { |e| Point.parse e }
+  vent_lines << VentLine.new(points[0], points[1])
+end
+puts count_intersections vent_lines

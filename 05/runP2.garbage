@@ -1,0 +1,135 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+class VentLine
+  attr_accessor :pos1, :pos2
+
+  def initialize(pos1, pos2)
+    if pos1 > pos2
+      @pos1 = pos2
+      @pos2 = pos1
+    else
+      @pos1 = pos1
+      @pos2 = pos2
+    end
+  end
+
+  def intersections(another)
+    if horizontal? && another.vertical?
+      if pos1.x <= another.pos1.x &&
+         another.pos1.x <= pos2.x &&
+         another.pos1.y <= pos1.y &&
+         pos1.y <= another.pos2.y
+        # puts "Intersection at #{another.pos1.x},#{pos1.y}"
+        return ["#{another.pos1.x}##{pos1.y}"]
+      end
+    elsif vertical? && another.horizontal?
+      if another.pos1.x <= pos1.x &&
+         pos1.x <= another.pos2.x &&
+         pos1.y <= another.pos1.y &&
+         another.pos1.y <= pos2.y
+        # puts "Intersection at #{pos1.x},#{another.pos1.y}"
+        return ["#{pos1.x}##{another.pos1.y}"]
+      end
+    elsif horizontal? && another.horizontal?
+      return [] unless pos1.y == another.pos1.y
+
+      if pos2.x >= another.pos1.x && pos1.x <= another.pos2.x
+        lower_bound = [pos1.x, another.pos1.x].max
+        upper_bound = [pos2.x, another.pos2.x].min
+        # puts "Hor.overlap [#{lower_bound}, #{upper_bound}]"
+        return (lower_bound..upper_bound).map { |x| "#{x}##{pos1.y}" }
+      end
+    elsif vertical? && another.vertical?
+      return [] unless pos1.x == another.pos1.x
+
+      if pos2.y >= another.pos1.y && pos1.y <= another.pos2.y
+        lower_bound = [pos1.y, another.pos1.y].max
+        upper_bound = [pos2.y, another.pos2.y].min
+        # puts "Vert.overlap [#{lower_bound}, #{upper_bound}]"
+        return (lower_bound..upper_bound).map { |y| "#{pos1.x}##{y}" }
+      end
+    elsif vertical?
+      another_slope = (another.pos2.y - another.pos1.y) / (another.pos2.x - another.pos1.x)
+      # another_offset = another.pos1.x.zero? ? another.pos1.y : another.pos1.y - (another_slope * another.pos1.x)
+      another_offset = another.pos1.y - (another_slope * another.pos1.x)
+      y = another_slope * pos1.x + another_offset
+      return pos1.y <= y && y <= pos2.y ? ["#{pos1.x}##{y}"] : []
+    elsif another.vertical?
+      slope = (pos2.y - pos1.y) / (pos2.x - pos1.x)
+      offset = pos1.y - (slope * pos1.x)
+      y = slope * another.pos1.x + offset
+      return another.pos1.y <= y && y <= another.pos2.y ? ["#{another.pos1.x}##{y}"] : []
+    else
+      slope = (pos2.y - pos1.y) / (pos2.x - pos1.x)
+      # y = ax + b
+      # b = y - ax
+      offset = pos1.y - (slope * pos1.x)
+      another_slope = (another.pos2.y - another.pos1.y) / (another.pos2.x - another.pos1.x)
+      another_offset = another.pos1.y - (another_slope * another.pos1.x)
+      puts "#{pos1.inspect} #{pos2.inspect} a:#{slope} b:#{offset}"
+      puts "another #{another.pos1.inspect} #{another.pos2.inspect} a:#{another_slope} b:#{another_offset}"
+      return [] if slope == another_slope && offset != another_offset
+      if slope == another_slope && offset == another_offset
+        lower_bound = [pos1.x, another.pos1.x].max
+        upper_bound = [pos2.x, another.pos2.x].min
+        # puts "Vert.overlap [#{lower_bound}, #{upper_bound}]"
+        return (lower_bound..upper_bound).map { |x| "#{x}##{slope * x + offset}" }
+      end
+
+      # a'x + b' = a"x + b"
+      # a'x - a"x = b" - b'
+      # x = (b" - b') / (a' - a")
+      x = (another_offset - offset) / (slope - another_slope)
+      puts "intersection: [#{x}, #{slope * x + offset}]"
+      if ((pos1.x <= x) && (x <= pos2.x))
+        puts "added: [#{x}, #{slope * x + offset}]"
+      end
+      return ((pos1.x <= x) && (x <= pos2.x)) ? ["#{x}##{slope * x + offset}"] : []
+    end
+    []
+  end
+
+  def horizontal?
+    pos1.y == pos2.y
+  end
+
+  def vertical?
+    pos1.x == pos2.x
+  end
+end
+
+Point = Struct.new(:x, :y) do
+  include Comparable
+
+  def self.parse(from)
+    parts = from.split(',')
+    Point.new(parts[0].to_i, parts[1].to_i)
+  end
+
+  def <=>(other)
+    return y <=> other.y if x == other.x
+    return x <=> other.x if y == other.y
+
+    # (x + y) <=> (other.x + other.y)
+    x <=> other.x
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+vent_lines = []
+input_lines.each do |line|
+  points = line.split('->').map(&:strip).map { |e| Point.parse e }
+  vent_lines << VentLine.new(points[0], points[1])
+end
+
+intersection_counts = Hash.new(0)
+vent_lines.each_with_index do |line, index|
+  vent_lines[(index + 1)...vent_lines.size].each do |compare_line|
+    line.intersections(compare_line).each do |intersection|
+      intersection_counts[intersection] += 1
+    end
+  end
+end
+puts intersection_counts.inspect
+puts "result: #{intersection_counts.size}"
