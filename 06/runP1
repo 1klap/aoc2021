@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def world_tick(sim)
+  sim_result = Hash.new 0
+  sim.each do |k, v|
+    case k
+    when 0
+      sim_result[8] += v
+      sim_result[6] += v
+    else
+      sim_result[k - 1] += v
+    end
+  end
+  sim_result
+end
+
+input = File.read 'input/data.txt'
+input_parts = input.strip.split(',').map(&:to_i)
+
+sim = Hash.new 0
+input_parts.each do |part|
+  sim[part] += 1
+end
+
+ITERATIONS = 80
+(1..ITERATIONS).each do |day|
+  sim = world_tick sim
+  puts "day#{day}: #{sim.inspect}"
+end
+
+puts sim.inspect
+puts "result: #{sim.values.sum}"
