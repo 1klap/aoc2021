@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def decode_mapping(patterns)
+  map = {}
+  p2 = patterns.filter { |p| p.size == 2 }.first.chars.sort
+  p3 = patterns.filter { |p| p.size == 3 }.first.chars.sort
+  p4 = patterns.filter { |p| p.size == 4 }.first.chars.sort
+  p7 = patterns.filter { |p| p.size == 7 }.first.chars.sort
+  map[:a] = (p3 - p2).first
+  p5s = patterns.filter { |p| p.size == 5 }
+  p5s.each do |p5|
+    p5 = p5.chars
+    r = (p5 - p3) - p4
+    if r.size == 1
+      map[:g] = r.first
+      break
+    end
+  end
+  map[:e] = (p7 - p4 - [map[:a]] - [map[:g]]).first
+  p6s = patterns.filter { |p| p.size == 6 }
+  p6s.each do |p6|
+    p6 = p6.chars
+    r = p6 - p3
+    if r.size == 4
+      map[:c] = (p7 - p6).first
+      break
+    end
+  end
+  map[:f] = (p2 - [map[:c]]).first
+  p5s.each do |p5|
+    p5 = p5.chars
+    map[:b] = (p7 - p5 - [map[:f]]).first if p5.include? map[:e]
+  end
+  map[:d] = (p4 - [map[:b]] - [map[:c]] - [map[:f]]).first
+
+  map.invert
+end
+
+def reconstruct_number(signal, wire_map)
+  numbers = signal.map do |number_scrambled|
+    number = number_scrambled.chars.map { |c| wire_map[c].to_s }.sort.join
+    case number
+    when 'abcefg'
+      0
+    when 'cf'
+      1
+    when 'acdeg'
+      2
+    when 'acdfg'
+      3
+    when 'bcdf'
+      4
+    when 'abdfg'
+      5
+    when 'abdefg'
+      6
+    when 'acf'
+      7
+    when 'abcdefg'
+      8
+    when 'abcdfg'
+      9
+    end
+  end
+  numbers.join.to_i
+end
+
+input_lines = File.readlines 'input/data.txt'
+
+numbers = input_lines.map do |line|
+  parts = line.split('|').map(&:strip)
+  patterns = parts[0].split ' '
+  wire_map = decode_mapping patterns
+  # puts wire_map
+  reconstruct_number parts[1].split(' '), wire_map
+end
+puts numbers.sum

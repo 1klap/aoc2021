@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+input_lines = File.readlines 'input/data.txt'
+
+output_lines = input_lines.map { |line| line.split('|')[1].strip }
+
+signals = output_lines.join(' ').split(' ')
+signal_counts = Hash.new 0
+# signals.reduce(counts) { |acc, v| acc[v.size] += 1 }
+signals.each do |s|
+  signal_counts[s.size] += 1
+end
+
+puts signal_counts
+result = signal_counts[2] + signal_counts[3] + signal_counts[4] + signal_counts[7]
+puts "result: #{result}"
