@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Point = Struct.new(:x, :y, :height) do; end
+
+class HeightMap
+  attr_accessor :height_array, :col_count, :row_count
+
+  def initialize(height_array, col_count, row_count)
+    @height_array = height_array
+    @col_count = col_count
+    @row_count = row_count
+  end
+
+  def self.parse(input_lines)
+    height_array = input_lines.join.chars.map(&:to_i)
+    col_count = input_lines[0].size
+    row_count = input_lines.size
+    HeightMap.new(height_array, col_count, row_count)
+  end
+
+  def height_at(x, y)
+    return nil if x.negative? || x >= col_count
+    return nil if y.negative? || y >= row_count
+
+    height_array[y * col_count + x]
+  end
+
+  def low_point?(x, y)
+    self_height = height_at x, y
+    top = height_at x, (y + 1)
+    right = height_at (x + 1), y
+    bottom = height_at x, (y - 1)
+    left = height_at (x - 1), y
+    (top.nil? || top > self_height) &&
+      (right.nil? || right > self_height) &&
+      (bottom.nil? || bottom > self_height) &&
+      (left.nil? || left > self_height)
+  end
+
+  def low_points
+    r = []
+    (0...col_count).each do |x|
+      (0...row_count).each do |y|
+        r << Point.new(x, y, height_at(x, y)) if low_point? x, y
+      end
+    end
+    r
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+height_map = HeightMap.parse input_lines.map(&:strip)
+
+low_points = height_map.low_points
+# puts low_points
+
+basins = low_points.map do |lp|
+  basin = [lp]
+  fringe = [lp]
+  until fringe.empty?
+    new_fringe = []
+    fringe.each do |fp|
+      top = height_map.height_at fp.x, fp.y + 1
+      right = height_map.height_at fp.x + 1, fp.y
+      bottom = height_map.height_at fp.x, fp.y - 1
+      left = height_map.height_at fp.x - 1, fp.y
+      new_fringe << Point.new(fp.x, fp.y + 1, top) if !top.nil? && top > fp.height && top < 9
+      new_fringe << Point.new(fp.x + 1, fp.y, right) if !right.nil? && right > fp.height && right < 9
+      new_fringe << Point.new(fp.x, fp.y - 1, bottom) if !bottom.nil? && bottom > fp.height && bottom < 9
+      new_fringe << Point.new(fp.x - 1, fp.y, left) if !left.nil? && left > fp.height && left < 9
+    end
+    new_fringe.uniq!
+    new_fringe = new_fringe.filter { |fp| !(basin.include? fp) }
+    basin += new_fringe
+    fringe = new_fringe
+  end
+  basin
+end
+
+max_basins = basins.max_by(3, &:size)
+puts max_basins.map(&:size).reduce(&:*)
