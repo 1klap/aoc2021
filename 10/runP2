@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def delimiters_match(left, right)
+  return right == ')' if left == '('
+  return right == ']' if left == '['
+  return right == '}' if left == '{'
+  return right == '>' if left == '<'
+
+  false
+end
+
+def delimiter_score(delimiter)
+  return 1 if delimiter == '('
+  return 2 if delimiter == '['
+  return 3 if delimiter == '{'
+  return 4 if delimiter == '<'
+
+  nil
+end
+
+def autocomplete_score(stack)
+  acc = 0
+  stack.reverse.each do |e|
+    acc = acc * 5 + delimiter_score(e)
+  end
+  acc
+end
+
+def score_line(line)
+  stack = []
+  breaking_delimiter = nil
+  line.chars.each do |c|
+    case c
+    when /[(\[{<]/
+      stack.append c
+    when /[)\]}>]/
+      pop = stack.delete_at stack.size - 1
+      unless delimiters_match pop, c
+        breaking_delimiter = c
+        break
+      end
+    end
+  end
+  # puts "s: #{stack.inspect}"
+  return nil unless breaking_delimiter.nil?
+  return autocomplete_score stack unless stack.empty?
+
+  0
+end
+
+input_lines = File.readlines 'input/data.txt'
+syntax_score = input_lines.map do |line|
+  score_line line
+end
+puts "score: #{syntax_score.inspect}"
+sorted_scores = syntax_score.filter { |v| !v.nil? }.sort
+puts sorted_scores[sorted_scores.size / 2]

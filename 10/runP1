@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def delimiters_match(left, right)
+  return right == ')' if left == '('
+  return right == ']' if left == '['
+  return right == '}' if left == '{'
+  return right == '>' if left == '<'
+
+  false
+end
+
+def delimiter_score(delimiter)
+  return 3 if delimiter == ')'
+  return 57 if delimiter == ']'
+  return 1197 if delimiter == '}'
+  return 25_137 if delimiter == '>'
+
+  nil
+end
+
+def score_line(line)
+  stack = []
+  breaking_delimiter = nil
+  line.chars.each do |c|
+    case c
+    when /[(\[{<]/
+      stack.append c
+    when /[)\]}>]/
+      pop = stack.delete_at stack.size - 1
+      unless delimiters_match pop, c
+        breaking_delimiter = c
+        break
+      end
+    end
+  end
+  # puts "s: #{stack.inspect}"
+  return delimiter_score breaking_delimiter unless breaking_delimiter.nil?
+  unless stack.empty?
+    # Incomplete line, ignore
+    return nil
+  end
+
+  0
+end
+
+input_lines = File.readlines 'input/data.txt'
+syntax_score = input_lines.map do |line|
+  score_line line
+end
+puts "score: #{syntax_score.inspect}"
+puts syntax_score.filter { |v| !v.nil? }.sum
