@@ -1,0 +1,90 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Octopus = Struct.new(:energy, :has_flashed) do
+end
+
+class Cave
+  attr_accessor :octopi
+
+  def initialize(grid)
+    @octopi = grid
+  end
+
+  def self.parse(lines)
+    grid = [[], [], [], [], [], [], [], [], [], []]
+
+    lines.each_with_index do |line, y|
+      line.chars.map(&:to_i).each_with_index do |energy, x|
+        grid[y][x] = Octopus.new energy, false
+      end
+    end
+    Cave.new(grid)
+  end
+
+  def adjacent_octopi(x, y)
+    r = []
+    r.append @octopi[y - 1][x] if y > 0
+    r.append @octopi[y + 1][x] if y < 9
+    r.append @octopi[y][x - 1] if x > 0
+    r.append @octopi[y][x + 1] if x < 9
+    r.append @octopi[y - 1][x - 1] if y > 0 && x > 0
+    r.append @octopi[y - 1][x + 1] if y > 0 && x < 9
+    r.append @octopi[y + 1][x - 1] if y < 9 && x > 0
+    r.append @octopi[y + 1][x + 1] if y < 9 && x < 9
+    r
+  end
+
+  def get_octopus(x, y); end
+
+  def sync_step
+    step = 0
+    while true
+      step += 1
+      num_flashes = 0
+      @octopi.each do |row|
+        row.each do |octopus|
+          octopus.energy += 1
+        end
+      end
+      flash_triggered = true
+      while flash_triggered
+        iter_flash_triggered = false
+        @octopi.each_with_index do |row, y|
+          row.each_with_index do |octopus, x|
+            next unless octopus.energy > 9 && !octopus.has_flashed
+
+            # puts "f at #{x} #{y}"
+            iter_flash_triggered = true
+            num_flashes += 1
+            octopus.has_flashed = true
+            adjacent_octopi(x, y).each { |o| o.energy += 1 }
+          end
+        end
+        flash_triggered = iter_flash_triggered
+      end
+      @octopi.each do |row|
+        row.each do |octopus|
+          if octopus.energy > 9
+            octopus.energy = 0
+            octopus.has_flashed = false
+          end
+        end
+      end
+      return step if num_flashes == 100
+    end
+  end
+
+  def inspect
+    @octopi.map { |l| l.map(&:energy).join }.join "\n"
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+cave = Cave.parse input_lines.map(&:strip)
+
+puts cave.inspect
+puts '-----------------'
+result = cave.sync_step
+puts cave.inspect
+puts "result: #{result}"
