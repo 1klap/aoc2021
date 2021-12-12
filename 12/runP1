@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Connection = Struct.new(:from, :to) {}
+Node = Struct.new(:cave, :nodes) {}
+
+def explore_paths(node, connections, visited_nodes)
+  possible_paths = connections.filter do |c|
+    (c.from == node.cave) && !(visited_nodes.include? c.to)
+  end
+  leaf_count = 0
+  possible_paths.each do |path|
+    visited_nodes_expanded = visited_nodes.dup
+    visited_nodes_expanded.append path.to unless large_cave? path.to
+    next_node = Node.new path.to, []
+    node.nodes << next_node
+    leaf_count += if path.to != 'end'
+                    explore_paths next_node, connections, visited_nodes_expanded
+                  else
+                    1
+                  end
+  end
+  leaf_count
+end
+
+def large_cave?(cave)
+  cave.match?(/[A-Z]+/)
+end
+
+input_lines = File.readlines 'input/data.txt'
+connections = []
+input_lines.map(&:strip).each do |line|
+  split = line.split('-')
+  connections << Connection.new(split[0], split[1])
+  connections << Connection.new(split[1], split[0])
+end
+
+start_node = Node.new('start', [])
+visited_caves = ['start']
+leaf_count = explore_paths start_node, connections, visited_caves
+puts "result: #{leaf_count}"
