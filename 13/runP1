@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Point = Struct.new(:x, :y) do
+  def self.parse(line)
+    s = line.split ','
+    Point.new s[0].to_i, s[1].to_i
+  end
+end
+
+def fold(dir, map, val)
+  map_keep = map.filter { |_, v| v.send(dir) < val } # dynamic method call, v.send(dir) equals v.x or v.y
+  fold_points = map.filter { |_, v| v.send(dir) > val }.values # like above
+  fold_points.each do |p|
+    p.send "#{dir}=", (val + val) - p.send(dir) # dynamic method call (p.x= or p.y=)
+    map_keep["#{p.x}##{p.y}"] = p
+  end
+  map_keep
+end
+
+input = File.read 'input/data.txt'
+split = input.split "\n\n"
+points = split[0].split("\n").map { |line| Point.parse line }
+folds = split[1].split("\n").map { |fold_line| fold_line.split(' ')[2] }
+
+folds = folds[0..0]
+map = {}
+points.each do |p|
+  map["#{p.x}##{p.y}"] = p
+end
+folds.each do |fold|
+  s = fold.split '='
+  map = fold s[0], map, s[1].to_i
+end
+
+# puts map.inspect
+puts map.values.size
