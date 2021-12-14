@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Insertion = Struct.new(:left1, :left2, :right) do
+  def self.parse(line)
+    s = line.split '->'
+    left = s[0].strip
+    Insertion.new left[0], left[1], s[1].strip
+  end
+end
+
+def expand_pairs(template_pairs, insertions)
+  to_be_removed = Hash.new 0
+  to_be_added = Hash.new 0
+  template_pairs.each do |pair, count|
+    fis = insertions.filter do |insertion|
+      insertion.left1 == pair[0] &&
+        insertion.left2 == pair[1]
+    end
+    next unless fis.size.positive?
+
+    to_be_removed[pair] += count
+    to_be_added["#{pair[0]}#{fis[0].right}"] += count
+    to_be_added["#{fis[0].right}#{pair[1]}"] += count
+  end
+  to_be_removed.each { |k, v| template_pairs[k] -= v }
+  to_be_added.each { |k, v| template_pairs[k] += v }
+  template_pairs.filter! { |_k, v| v.positive? }
+end
+
+input = File.read 'input/data.txt'
+split = input.split "\n\n"
+template = split[0]
+insertions = split[1].split("\n").map { |line| Insertion.parse line }
+
+template_pairs = Hash.new 0
+(1...template.size).each do |index|
+  template_pairs[template[index - 1..index]] += 1
+end
+
+STEP_COUNT = 40
+
+(1..STEP_COUNT).each do |_step|
+  expand_pairs template_pairs, insertions
+  # puts "step#{step}: #{template_pairs.inspect}"
+end
+
+# sum the count of equal first letters of each pair, then add one to the last letter of the template
+# this is possible because the second letter will be the first letter somewhere else and can be ignored
+letter_counts = template_pairs.group_by { |e| e[0][0] }.transform_values { |v| v.reduce(0) { |acc, e| acc + e[1] } }
+letter_counts[template[-1]] += 1
+puts letter_counts.inspect
+most_common = letter_counts.max_by { |e| e[1] }
+least_common = letter_counts.min_by { |e| e[1] }
+puts "result: #{most_common[1] - least_common[1]}"

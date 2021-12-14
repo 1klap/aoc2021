@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Insertion = Struct.new(:left1, :left2, :right) do
+  def self.parse(line)
+    s = line.split '->'
+    left = s[0].strip
+    Insertion.new left[0], left[1], s[1].strip
+  end
+end
+
+def grow_template(template, insertions)
+  (template.size - 1).downto(1).each do |index|
+    fis = insertions.filter do |insertion|
+      insertion.left1 == template[index - 1] &&
+        insertion.left2 == template[index]
+    end
+    template.insert index, fis[0].right unless fis.empty?
+  end
+  template
+end
+
+input = File.read 'input/data.txt'
+split = input.split "\n\n"
+template = split[0]
+insertions = split[1].split("\n").map { |line| Insertion.parse line }
+
+STEP_COUNT = 10
+
+(1..STEP_COUNT).each do |step|
+  template = grow_template template, insertions
+  # puts "step#{step}: #{template}"
+end
+
+letter_counts = template.chars.group_by { |e| e }.transform_values(&:length)
+puts letter_counts.inspect
+most_common = letter_counts.max_by { |e| e[1] }
+least_common = letter_counts.min_by { |e| e[1] }
+puts "result: #{most_common[1] - least_common[1]}"
