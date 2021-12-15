@@ -1,0 +1,120 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Node = Struct.new(:x, :y, :risk, :sum_risk, :from) do
+  def initiaize(x, y, risk)
+    @x = x
+    @y = y
+    @risk = risk
+    @sum_risk = nil
+    @from = nil
+  end
+end
+
+class Cave
+  attr_accessor :nodes
+
+  def initialize(nodes)
+    @nodes = nodes
+  end
+
+  def self.parse(lines)
+    grid = Array.new lines.size
+    grid.each_with_index do |_y, index|
+      grid[index] = Array.new lines[0].size
+    end
+    lines.each_with_index do |line, y|
+      line.chars.map(&:to_i).each_with_index do |risk, x|
+        grid[y][x] = Node.new x, y, risk
+      end
+    end
+    Cave.new(grid)
+  end
+
+  def scale!(factor)
+    prev_row_count = @nodes.size
+    prev_col_count = @nodes[0].size
+    grid = Array.new prev_row_count * factor
+    grid.each_with_index do |_y, index|
+      grid[index] = Array.new prev_col_count * factor
+    end
+    (0...factor).each do |y_offset|
+      (0...factor).each do |x_offset|
+        @nodes.each_with_index do |row, y|
+          row.each_with_index do |n, x|
+            new_risk = ((n.risk + y_offset + x_offset - 1) % 9) + 1
+            new_y = y_offset * prev_row_count + y
+            new_x = x_offset * prev_col_count + x
+            grid[new_y][new_x] = Node.new new_x, new_y, new_risk
+          end
+        end
+      end
+    end
+    @nodes = grid
+  end
+
+  def adjacent_nodes(x, y)
+    r = {}
+    r[:t] = @nodes[y - 1][x] if y > 0
+    r[:b] = @nodes[y + 1][x] if y < @nodes.size - 1
+    r[:l] = @nodes[y][x - 1] if x > 0
+    r[:r] = @nodes[y][x + 1] if x < @nodes[0].size - 1
+    r
+  end
+
+  def draw
+    @nodes.map { |l| l.map(&:risk).join }.join "\n"
+  end
+
+  def draw_path
+    start_node = @nodes[0][0]
+    end_node = @nodes[-1][-1]
+    curr = end_node
+    sol_nodes = []
+    while curr != start_node
+      sol_nodes << curr
+      curr = case curr.from
+             when :t
+               @nodes[curr.y + 1][curr.x]
+             when :b
+               @nodes[curr.y - 1][curr.x]
+             when :r
+               @nodes[curr.y][curr.x - 1]
+             when :l
+               @nodes[curr.y][curr.x + 1]
+             end
+    end
+    @nodes.map { |l| l.map { |n| sol_nodes.include?(n) ? '#' : n.risk }.join }.join "\n"
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+cave = Cave.parse input_lines.map(&:strip)
+puts cave.draw
+cave.scale! 5
+# puts cave.draw
+
+start_node = cave.nodes[0][0]
+end_node = cave.nodes[-1][-1]
+start_node.sum_risk = 0
+fringe = [start_node]
+until fringe.empty?
+  new_fringe = []
+  fringe.each do |n|
+    next_nodes = cave.adjacent_nodes n.x, n.y
+    next_nodes = next_nodes.filter do |dir, next_node|
+      if next_node.sum_risk.nil? || n.sum_risk + next_node.risk < next_node.sum_risk
+        next_node.from = dir
+        next_node.sum_risk = n.sum_risk + next_node.risk
+        true
+      else
+        false
+      end
+    end
+    new_fringe += next_nodes.values
+  end
+  fringe = new_fringe
+  puts "fringe_size: #{fringe.count}"
+end
+# puts cave.draw_path
+puts "result: #{end_node.sum_risk}"
