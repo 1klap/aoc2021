@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Packet = Struct.new(:v, :type, :lval, :op) do
+  def v_sum
+    lval.nil? ? v + op.map(&:v_sum).sum : v
+  end
+end
+
+def read_packet(bin_string)
+  v = bin_string[0..2].to_i 2
+  type = bin_string[3..5].to_i 2
+  p = Packet.new v, type
+  if type == 4
+    p.lval, len = read_literal_value bin_string[6..-1]
+  else
+    p.op, len = read_operator_packet bin_string[6..-1]
+  end
+  [p, len + 6]
+end
+
+def read_literal_value(bin_string)
+  bin_acc = ''
+  zero_startbit_read = false
+  until zero_startbit_read
+    zero_startbit_read = bin_string[0] == '0'
+    bin_acc += bin_string[1..4]
+    bin_string = bin_string[5..-1]
+  end
+  consumed = (bin_acc.size / 4) * 5
+  [bin_acc.to_i(2), consumed]
+end
+
+def read_operator_packet(bin_string)
+  sub_packets = []
+  case bin_string[0] # length type bit
+  when '0'
+    total_length = bin_string[1..15].to_i 2
+    curr_bit = 16
+    while curr_bit < total_length + 16
+      sp, len = read_packet bin_string[curr_bit..(16 + total_length)]
+      curr_bit += len
+      sub_packets << sp
+    end
+    [sub_packets, total_length + 15 + 1]
+  when '1'
+    nb_packets = bin_string[1..11].to_i 2
+    curr_bit = 12
+    curr_packet = 0
+    while curr_packet < nb_packets
+      curr_packet += 1
+      sp, len = read_packet bin_string[curr_bit..-1]
+      curr_bit += len
+      sub_packets << sp
+    end
+    [sub_packets, curr_bit]
+  end
+end
+
+input = File.read 'input/data.txt'
+input_bin_s = input.chars.map { |c| c.to_i(16).to_s(2).rjust(4, '0') }.join # hex to bin string
+
+p, _len = read_packet input_bin_s
+puts "result: #{p.v_sum}"
