@@ -14,7 +14,7 @@ def read_packet(bin_string)
   if type == 4
     p.lval, len = read_literal_value bin_string[6..-1]
   else
-    p.op, len = read_operator_packet bin_string[6..-1]
+    p.op, len = read_operator bin_string[6..-1]
   end
   [p, len + 6]
 end
@@ -27,11 +27,11 @@ def read_literal_value(bin_string)
     bin_acc += bin_string[1..4]
     bin_string = bin_string[5..-1]
   end
-  consumed = (bin_acc.size / 4) * 5
-  [bin_acc.to_i(2), consumed]
+  len = (bin_acc.size / 4) * 5
+  [bin_acc.to_i(2), len]
 end
 
-def read_operator_packet(bin_string)
+def read_operator(bin_string)
   sub_packets = []
   case bin_string[0] # length type bit
   when '0'
@@ -42,13 +42,13 @@ def read_operator_packet(bin_string)
       curr_bit += len
       sub_packets << sp
     end
-    [sub_packets, total_length + 15 + 1]
+    [sub_packets, curr_bit]
   when '1'
     nb_packets = bin_string[1..11].to_i 2
     curr_bit = 12
-    curr_packet = 0
-    while curr_packet < nb_packets
-      curr_packet += 1
+    packets_read = 0
+    while packets_read < nb_packets
+      packets_read += 1
       sp, len = read_packet bin_string[curr_bit..-1]
       curr_bit += len
       sub_packets << sp
