@@ -1,15 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-Node = Struct.new(:x, :y, :risk, :sum_risk, :from) do
-  def initiaize(x, y, risk)
-    @x = x
-    @y = y
-    @risk = risk
-    @sum_risk = nil
-    @from = nil
-  end
-end
+Node = Struct.new(:x, :y, :risk, :sum_risk, :from) {}
 
 class Cave
   attr_accessor :nodes
