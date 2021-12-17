@@ -1,0 +1,89 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def sim_probe(x_vel, y_vel, target_input)
+  pos = []
+  probe_x = 0
+  probe_y = 0
+  in_target = false
+  while probe_x <= target_input[1] && probe_y >= target_input[2]
+    probe_x += x_vel
+    probe_y += y_vel
+    x_vel -= 1 if x_vel > 0
+    x_vel += 1 if x_vel < 0
+    y_vel -= 1
+    pos << [probe_x, probe_y]
+    next unless probe_x >= target_input[0] &&
+                probe_x <= target_input[1] &&
+                probe_y >= target_input[2] &&
+                probe_y <= target_input[3]
+
+    in_target = true
+    break
+  end
+  [pos, in_target]
+end
+
+def sim_probe_y(y_vel, y_min, y_max)
+  pos = []
+  probe_y = 0
+  in_target = false
+  while probe_y >= y_min
+    probe_y += y_vel
+    y_vel -= 1
+    pos << probe_y
+    if probe_y >= y_min && probe_y <= y_max
+      in_target = true
+      break
+    end
+  end
+  [pos, in_target]
+end
+
+def sumial(n)
+  (n * (n + 1)) / 2
+end
+
+input = File.read 'input/data.txt'
+target_input = input.split(':')[1].split(',').map { |s| s.strip.split('=')[1].split('..').map(&:to_i) }.flatten
+# x_min, x_max, y_min, y_max = target_input
+
+y_vel_upper_bound = 0
+bound_found = false
+until bound_found
+  y_vel_upper_bound += 10
+  _, in_target = sim_probe_y y_vel_upper_bound, target_input[2], target_input[3]
+  bound_found = true unless in_target
+end
+puts "y_vel upper_bound: #{y_vel_upper_bound}"
+
+y_vel_lower_bound = 0
+bound_found = false
+until bound_found
+  y_vel_lower_bound -= 10
+  _, in_target = sim_probe_y y_vel_lower_bound, target_input[2], target_input[3]
+  bound_found = true unless in_target
+end
+puts "y_vel lower_bound: #{y_vel_lower_bound}"
+
+x_vel_lower_bound = 0
+bound_found = false
+until bound_found
+  x_vel_lower_bound += 1
+  # the sum of decreasing vel must at least be as big as the min of the target window
+  bound_found = true if sumial(x_vel_lower_bound) >= target_input[0]
+end
+puts "x_vel lower_bound: #{x_vel_lower_bound}"
+
+x_vel_upper_bound = target_input[1]
+puts "x_vel upper_bound: #{x_vel_upper_bound}"
+
+in_target_velocities = []
+(x_vel_lower_bound..x_vel_upper_bound).each do |x_vel|
+  (y_vel_lower_bound..y_vel_upper_bound).each do |y_vel|
+    _, in_target = sim_probe x_vel, y_vel, target_input
+    in_target_velocities << [x_vel, y_vel] if in_target
+  end
+end
+# puts in_target_velocities.inspect
+puts "result: #{in_target_velocities.size}"

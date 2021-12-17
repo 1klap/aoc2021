@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def sim_probe(x_vel, y_vel, target_input)
+  pos = []
+  probe_x = 0
+  probe_y = 0
+  in_target = false
+  while probe_x <= target_input[1] && probe_y >= target_input[2]
+    probe_x += x_vel
+    probe_y += y_vel
+    x_vel -= 1 if x_vel > 0
+    x_vel += 1 if x_vel < 0
+    y_vel -= 1
+    pos << [probe_x, probe_y]
+    next unless probe_x >= target_input[0] &&
+                probe_x <= target_input[1] &&
+                probe_y >= target_input[2] &&
+                probe_y <= target_input[3]
+
+    in_target = true
+    break
+  end
+  [pos, in_target]
+end
+
+def sim_probe_y(y_vel, y_min, y_max)
+  pos = []
+  probe_y = 0
+  in_target = false
+  while probe_y >= y_min
+    probe_y += y_vel
+    y_vel -= 1
+    pos << probe_y
+    if probe_y >= y_min && probe_y <= y_max
+      in_target = true
+      break
+    end
+  end
+  [pos, in_target]
+end
+
+input = File.read 'input/data.txt'
+target_input = input.split(':')[1].split(',').map { |s| s.strip.split('=')[1].split('..').map(&:to_i) }.flatten
+# x_min, x_max, y_min, y_max = target_input
+
+y_vel_upper_bound = 50
+bound_found = false
+until bound_found
+  y_vel_upper_bound += 10
+  positions, in_target = sim_probe_y y_vel_upper_bound, target_input[2], target_input[3]
+  bound_found = true unless in_target
+end
+puts "y_vel upper_bound: #{y_vel_upper_bound}"
+
+max_y = 0
+y_vel_r = 0
+(0..y_vel_upper_bound).each do |y_vel|
+  positions, in_target = sim_probe_y y_vel, target_input[2], target_input[3]
+  next unless in_target
+
+  candidate = positions.max
+  if candidate > max_y
+    max_y = candidate
+    y_vel_r = y_vel
+  end
+end
+puts "y_vel_res: #{y_vel_r}"
+puts "result: #{max_y}"
