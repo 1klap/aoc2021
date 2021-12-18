@@ -1,0 +1,131 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Node = Struct.new(:parent, :val, :left, :right, :left_child) do
+  def self.parse(line)
+    parse_r(line, nil)[0]
+  end
+
+  def self.parse_r(line, parent)
+    n = Node.new parent
+    self_chars_read = nil
+    if line.start_with? '['
+      left, chars_read_left = Node.parse_r(line[1..-1], n)
+      right, chars_read_right = Node.parse_r(line[2 + chars_read_left..-1], n)
+      left.left_child = true
+      right.left_child = false
+      n.left = left
+      n.right = right
+      self_chars_read = chars_read_left + chars_read_right + 3
+    else
+      n.val = line[0].to_i
+      self_chars_read = 1
+    end
+    [n, self_chars_read]
+  end
+
+  def +(other)
+    self.left_child = true
+    other.left_child = false
+    r = Node.new(nil, nil, self, other)
+    self.parent = r
+    other.parent = r
+    r.reduce
+  end
+
+  def reduce
+    exploded = true
+    did_split = true
+    while exploded || did_split
+      exploded = explode
+      next if exploded
+
+      did_split = split
+    end
+    self
+  end
+
+  def explode
+    explode_r 0
+  end
+
+  def explode_r(depth)
+    if !val.nil?
+      false
+    elsif depth == 4
+      self.val = 0
+      l_node = first_left
+      l_node.val += left.val unless l_node.nil?
+      r_node = first_right
+      r_node.val += right.val unless r_node.nil?
+      self.left = nil
+      self.right = nil
+      true
+    else
+      left.explode_r(depth + 1) || right.explode_r(depth + 1)
+    end
+  end
+
+  def first_left
+    return nil if parent.nil?
+
+    if left_child
+      parent.first_left
+    else
+      parent.left.right_most_down
+    end
+  end
+
+  def right_most_down
+    val.nil? ? right.right_most_down : self
+  end
+
+  def first_right
+    return nil if parent.nil?
+
+    if !left_child
+      parent.first_right
+    else
+      parent.right.left_most_down
+    end
+  end
+
+  def left_most_down
+    val.nil? ? left.left_most_down : self
+  end
+
+  def split
+    if val.nil?
+      left.split || right.split
+    elsif val > 9
+      self.left = Node.new self, val / 2
+      self.right = Node.new self, (val / 2) + (val % 2)
+      left.left_child = true
+      right.left_child = false
+      self.val = nil
+      true
+    else
+      false
+    end
+  end
+
+  def magnitude
+    val.nil? ? (3 * left.magnitude) + (2 * right.magnitude) : val
+  end
+
+  def inspect
+    val.nil? ? "[#{left.inspect},#{right.inspect}]" : val
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+node_lines = input_lines.map { |line| Node.parse(line) }
+
+result = node_lines[1..-1].reduce(node_lines[0]) do |acc, line|
+  # puts acc.inspect
+  # puts "+#{line.inspect}"
+  res = acc + line
+  # puts "= #{res.inspect}"
+  res
+end
+puts "result: #{result.magnitude}"
