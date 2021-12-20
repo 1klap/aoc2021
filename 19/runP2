@@ -17,11 +17,6 @@ Point = Struct.new(:x, :y, :z) do
 end
 
 BeaconVec = Struct.new(:index1, :index2, :vec) do
-  # include Comparable
-
-  # def <=>(other)
-  #   vec <=> other.vec
-  # end
 end
 
 Scanner = Struct.new(:nb, :beacons, :bvectors, :pos, :rot) do
@@ -35,19 +30,15 @@ Scanner = Struct.new(:nb, :beacons, :bvectors, :pos, :rot) do
 
   def remap!
     puts "scanner##{nb} pos: #{pos.x},#{pos.y},#{pos.z} rot: #{rot}"
-    self.beacons = self.beacons.map do |b| 
-      # puts "beacon before #{b.x},#{b.y},#{b.z}"
-      x, y, z = Rotations.send("r#{self.rot}", b.x, b.y, b.z)
-      # translation into s0 space
-      p = Point.new x+pos.x, y+pos.y, z+pos.z
-      # puts "beacon after #{p.x},#{p.y},#{p.z}"
-      p
+    self.beacons = beacons.map do |b|
+      x, y, z = Rotations.send("r#{rot}", b.x, b.y, b.z)
+      Point.new x + pos.x, y + pos.y, z + pos.z
     end
-    #self.bvectors = self.beacons.each_with_index.map { |e, index| [e, index] }.combination(2).map do |comb|
+    # self.bvectors = self.beacons.each_with_index.map { |e, index| [e, index] }.combination(2).map do |comb|
     #  b1 = comb[0]
     #  b2 = comb[1]
     #  BeaconVec.new b1[1], b2[1], b2[0] - b1[0]
-    #end
+    # end
   end
 end
 
@@ -60,49 +51,105 @@ def bvector_from_beacons(beacons)
 end
 
 class Rotations
-  def self.r0(a, b, c) [a, b, c] end
-  def self.r1(a, b, c) [a, c, -b] end
-  def self.r2(a, b, c) [a, -b, -c] end
-  def self.r3(a, b, c) [a, -c, b] end
-  def self.r4(a, b, c) [c, b, -a] end
-  def self.r5(a, b, c) [-b, c, -a] end
-  def self.r6(a, b, c) [-c, -b, -a] end
-  def self.r7(a, b, c) [b, -c, -a] end
-  def self.r8(a, b, c) [-a, b, -c] end
-  def self.r9(a, b, c) [-a, c, b] end
-  def self.r10(a, b, c) [-a, -b, c] end
-  def self.r11(a, b, c) [-a, -c, -b] end
-  def self.r12(a, b, c) [-c, b, a] end
-  def self.r13(a, b, c) [b, c, a] end
-  def self.r14(a, b, c) [c, -b, a] end
-  def self.r15(a, b, c) [-b, -c, a] end
-  def self.r16(a, b, c) [-b, a, c] end
-  def self.r17(a, b, c) [-c, a, -b] end
-  def self.r18(a, b, c) [b, a, -c] end
-  def self.r19(a, b, c) [c, a, b] end
-  def self.r20(a, b, c) [b, -a, c] end
-  def self.r21(a, b, c) [-c, -a, b] end
-  def self.r22(a, b, c) [-b, -a, -c] end
-  def self.r23(a, b, c) [c, -a, -b] end
+  def self.r0(a, b, c)
+    [a, b, c]
+  end
+
+  def self.r1(a, b, c)
+    [a, c, -b]
+  end
+
+  def self.r2(a, b, c)
+    [a, -b, -c]
+  end
+
+  def self.r3(a, b, c)
+    [a, -c, b]
+  end
+
+  def self.r4(a, b, c)
+    [c, b, -a]
+  end
+
+  def self.r5(a, b, c)
+    [-b, c, -a]
+  end
+
+  def self.r6(a, b, c)
+    [-c, -b, -a]
+  end
+
+  def self.r7(a, b, c)
+    [b, -c, -a]
+  end
+
+  def self.r8(a, b, c)
+    [-a, b, -c]
+  end
+
+  def self.r9(a, b, c)
+    [-a, c, b]
+  end
+
+  def self.r10(a, b, c)
+    [-a, -b, c]
+  end
+
+  def self.r11(a, b, c)
+    [-a, -c, -b]
+  end
+
+  def self.r12(a, b, c)
+    [-c, b, a]
+  end
+
+  def self.r13(a, b, c)
+    [b, c, a]
+  end
+
+  def self.r14(a, b, c)
+    [c, -b, a]
+  end
+
+  def self.r15(a, b, c)
+    [-b, -c, a]
+  end
+
+  def self.r16(a, b, c)
+    [-b, a, c]
+  end
+
+  def self.r17(a, b, c)
+    [-c, a, -b]
+  end
+
+  def self.r18(a, b, c)
+    [b, a, -c]
+  end
+
+  def self.r19(a, b, c)
+    [c, a, b]
+  end
+
+  def self.r20(a, b, c)
+    [b, -a, c]
+  end
+
+  def self.r21(a, b, c)
+    [-c, -a, b]
+  end
+
+  def self.r22(a, b, c)
+    [-b, -a, -c]
+  end
+
+  def self.r23(a, b, c)
+    [c, -a, -b]
+  end
 end
 
 input = File.read 'input/data.txt'
 scanners = input.split("\n\n").map { |scanner_block| Scanner.parse scanner_block }
-# puts scanners[0].bvectors.inspect
-=begin
-bv0 = scanners[0].bvectors.map(&:vec)
-bv1 = scanners[1].bvectors.map(&:vec)
-
-bvr0 = bv0.map { |p| Rotations.r0 p.x, p.y, p.z }
-(0..23).each do |rot_index|
-  bvr1 = bv1.map { |p| Rotations.send "r#{rot_index}", p.x, p.y, p.z }
-  inter = bvr0 & bvr1
-  if inter.size > 0
-    puts "rot_index=#{rot_index} intersections:#{inter.size}"
-    puts inter.inspect
-  end
-end
-=end
 beacon_pool = scanners[0].beacons
 bvector_pool = bvector_from_beacons beacon_pool
 scanners[0].rot = 0
@@ -110,60 +157,40 @@ scanners[0].pos = Point.new 0, 0, 0
 mapped_scanners = [scanners[0]]
 all_scanners_mapped = false
 # solution from part 1 to make execution faster
-rotations = [0, 3, 9, 2, 4, 5, 17, 18, 11, 23, 6, 20, 22, 1, 21, 8, 13, 16, 7, 14, 12, 19, 10, 15, 8, 22, 17, 16, 5, 11, 8, 6, 0, 9, 19, 0]
-while !all_scanners_mapped
+rotations = [0, 3, 9, 2, 4, 5, 17, 18, 11, 23, 6, 20, 22, 1, 21, 8, 13, 16, 7, 14, 12, 19, 10, 15, 8, 22, 17, 16, 5,
+             11, 8, 6, 0, 9, 19, 0]
+until all_scanners_mapped
   catch :scanner_found do
     unmapped_scanners = scanners.select { |s| s.rot.nil? }
-    # mapped_scanners.reverse.each do |s|
-      # sbv = s.bvectors
-      sbv = bvector_pool
-      sbv0 = sbv.map { |bvec| [Rotations.r0(bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
-      unmapped_scanners.each do |us|
-        rot_index = rotations[us.nb]
-        # (0..23).each do |rot_index|
-          # puts "trying rot #{rot_index} for scanner #{us.nb}"
-          usbv = us.bvectors.map { |bvec| [Rotations.send("r#{rot_index}", bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
-          #inter = sbv0.select { |e| usbv.map(&:first).include? e[0] }
-          inter = usbv.select { |e| sbv0.map(&:first).include? e[0] }
-          inter_beacon_indexes = (inter.map { |e| e[1] } + inter.map { |e| e[2] }).uniq
-          # puts inter.inspect if inter.size > 0
-          # puts inter_beacon_indexes.inspect if inter.size > 0
-          if inter_beacon_indexes.size > 10
-            # puts "#{rot_index} found"
-            us.rot = rot_index
-
-
-            matching_record = sbv0.select { |e| e[0] == inter[0][0] }
-            beacon1_index = matching_record[0][1]
-            beacon1 = beacon_pool[beacon1_index]
-            ## common_beacon_index = inter[0][1]
-            # beacon1 = s.beacons[common_beacon_index]
-            ## beacon1 = beacon_pool[common_beacon_index]
-            # puts "beacon1: #{beacon1.inspect}"
-            ## matching_record = usbv.select { |e| e[0] == inter[0][0] }
-            ## rotated_beacon_index = matching_record[0][1]
-            ## beacon2 = us.beacons[rotated_beacon_index]
-            beacon2 = us.beacons[inter[0][1]]
-            # puts "beacon2: #{beacon2.inspect}"
-            remapped_beacon2 = Rotations.send("r#{rot_index}", beacon2.x, beacon2.y, beacon2.z)
-            # puts "beacon2_r: #{remapped_beacon2.inspect}"
-            rbp2 = Point.new remapped_beacon2[0], remapped_beacon2[1], remapped_beacon2[2]
-            us.pos = (beacon1 - rbp2) #+ s.pos
-
-            us.remap!
-            mapped_scanners << us
-            # puts "#{us.nb}: rot=#{us.rot}"
-
-            beacon_pool += us.beacons
-            beacon_pool = beacon_pool.uniq
-            puts "beacon count: #{beacon_pool.size}"
-            bvector_pool = bvector_from_beacons beacon_pool
-
-            throw :scanner_found
-          end
-        # end
+    sbv = bvector_pool
+    sbv0 = sbv.map { |bvec| [Rotations.r0(bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
+    unmapped_scanners.each do |us|
+      rot_index = rotations[us.nb]
+      usbv = us.bvectors.map do |bvec|
+        [Rotations.send("r#{rot_index}", bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2]
       end
-    # end
+      inter = usbv.select { |e| sbv0.map(&:first).include? e[0] }
+      inter_beacon_indexes = (inter.map { |e| e[1] } + inter.map { |e| e[2] }).uniq
+      next unless inter_beacon_indexes.size > 10
+
+      us.rot = rot_index
+      matching_record = sbv0.select { |e| e[0] == inter[0][0] }
+      beacon1_index = matching_record[0][1]
+      beacon1 = beacon_pool[beacon1_index]
+      beacon2 = us.beacons[inter[0][1]]
+      remapped_beacon2 = Rotations.send("r#{rot_index}", beacon2.x, beacon2.y, beacon2.z)
+      rbp2 = Point.new remapped_beacon2[0], remapped_beacon2[1], remapped_beacon2[2]
+      us.pos = (beacon1 - rbp2)
+
+      us.remap!
+      mapped_scanners << us
+      beacon_pool += us.beacons
+      beacon_pool = beacon_pool.uniq
+      puts "beacon count: #{beacon_pool.size}"
+      bvector_pool = bvector_from_beacons beacon_pool
+
+      throw :scanner_found
+    end
   end
   puts "mapped scanners: #{mapped_scanners.count}"
   all_scanners_mapped = mapped_scanners.count == scanners.count
@@ -177,81 +204,9 @@ beacons = scanners.map(&:beacons).reduce([]) { |memo, e| memo + e }.uniq
 puts beacons.inspect
 puts beacons.size
 
-max_mh_distance = 0
 distances = scanners.combination(2).map do |comb|
   s0 = comb[0]
   s1 = comb[1]
   (s0.pos.x - s1.pos.x).abs + (s0.pos.y - s1.pos.y).abs + (s0.pos.z - s1.pos.z).abs
 end
-puts distances.max
-
-=begin
-b0 = scanners[0].bvectors
-b1 = scanners[1].bvectors
-bf0 = b0.map { |bvec| [Rotations.r0(bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
-rot_index = 8
-bff1 = b1.map { |bvec| Rotations.send("r#{rot_index}", bvec.vec.x, bvec.vec.y, bvec.vec.z) }
-inter = bf0.select { |e| bff1.include? e[0] }
-inter_beacon_indexes = (inter.map { |e| e[1] } + inter.map { |e| e[2] }).uniq
-puts inter_beacon_indexes.inspect
-puts inter_beacon_indexes.size
-=end
-
-# (0..23).each do |rot_index|
-  # bvr1 = bv1.map { |p| Rotations.send "r#{rot_index}", p.x, p.y, p.z }
-  # inter = bvr0 & bvr1
-  #if inter.size > 0
-  #  puts "rot_index=#{rot_index} intersections:#{inter.size}"
-  #  puts inter.inspect
-  #end
-# end
-
-
-
-
-# bvr1 = bv1.map { |p| r08 p.x, p.y, p.z }
-# inter = bvr0 & bvr1
-
-# puts bv0.inspect
-# puts bv1.inspect
-# inter = bv0 & bv1
-# puts inter.inspect
-# puts inter.count
-#
-# solution
-# 0: rot=0
-# 1: rot=3
-# 2: rot=9
-# 3: rot=2
-# 4: rot=4
-# 5: rot=5
-# 6: rot=17
-# 7: rot=18
-# 8: rot=11
-# 9: rot=23
-# 10: rot=6
-# 11: rot=20
-# 12: rot=22
-# 13: rot=1
-# 14: rot=21
-# 15: rot=8
-# 16: rot=13
-# 17: rot=16
-# 18: rot=7
-# 19: rot=14
-# 20: rot=12
-# 21: rot=19
-# 22: rot=10
-# 23: rot=15
-# 24: rot=8
-# 25: rot=22
-# 26: rot=17
-# 27: rot=16
-# 28: rot=5
-# 29: rot=11
-# 30: rot=8
-# 31: rot=6
-# 32: rot=0
-# 33: rot=9
-# 34: rot=19
-# 35: rot=0
+puts "result: #{distances.max}"
