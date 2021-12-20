@@ -109,6 +109,8 @@ scanners[0].rot = 0
 scanners[0].pos = Point.new 0, 0, 0
 mapped_scanners = [scanners[0]]
 all_scanners_mapped = false
+# solution from part 1 to make execution faster
+rotations = [0, 3, 9, 2, 4, 5, 17, 18, 11, 23, 6, 20, 22, 1, 21, 8, 13, 16, 7, 14, 12, 19, 10, 15, 8, 22, 17, 16, 5, 11, 8, 6, 0, 9, 19, 0]
 while !all_scanners_mapped
   catch :scanner_found do
     unmapped_scanners = scanners.select { |s| s.rot.nil? }
@@ -117,7 +119,8 @@ while !all_scanners_mapped
       sbv = bvector_pool
       sbv0 = sbv.map { |bvec| [Rotations.r0(bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
       unmapped_scanners.each do |us|
-        (0..23).each do |rot_index|
+        rot_index = rotations[us.nb]
+        # (0..23).each do |rot_index|
           # puts "trying rot #{rot_index} for scanner #{us.nb}"
           usbv = us.bvectors.map { |bvec| [Rotations.send("r#{rot_index}", bvec.vec.x, bvec.vec.y, bvec.vec.z), bvec.index1, bvec.index2] }
           #inter = sbv0.select { |e| usbv.map(&:first).include? e[0] }
@@ -158,7 +161,7 @@ while !all_scanners_mapped
 
             throw :scanner_found
           end
-        end
+        # end
       end
     # end
   end
@@ -173,6 +176,14 @@ end
 beacons = scanners.map(&:beacons).reduce([]) { |memo, e| memo + e }.uniq
 puts beacons.inspect
 puts beacons.size
+
+max_mh_distance = 0
+distances = scanners.combination(2).map do |comb|
+  s0 = comb[0]
+  s1 = comb[1]
+  (s0.pos.x - s1.pos.x).abs + (s0.pos.y - s1.pos.y).abs + (s0.pos.z - s1.pos.z).abs
+end
+puts distances.max
 
 =begin
 b0 = scanners[0].bvectors
