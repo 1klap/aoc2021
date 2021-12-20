@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'set'
+
+def algs_to_int(algstring)
+  algstring.chars.map { |c| c == '#' ? '1' : '0' }.join.to_i 2
+end
+
+def draw_pixels(pixels, xmin, xmax, ymin, ymax)
+  image = (ymin..ymax).map do |y|
+    (xmin..xmax).map do |x|
+      pixels.include?("#{x}##{y}") ? '#' : '.'
+    end.join
+  end.join "\n"
+  puts image
+end
+
+input = File.read 'input/data.txt'
+alg, img = input.split("\n\n")
+alg_chars = alg.chars
+
+x_min = 0
+x_max = nil
+y_min = 0
+y_max = nil
+pixels = Set.new
+lines = img.split("\n")
+y_max = lines.size - 1
+x_max = lines[0].size - 1
+lines.each_with_index do |line, y|
+  line.chars.each_with_index do |c, x|
+    pixels << "#{x}##{y}" if c == '#'
+  end
+end
+
+draw_pixels pixels, x_min, x_max, y_min, y_max
+
+offsets = [[-1, -1], [0, -1], [1, -1],
+           [-1,  0], [0,  0], [1,  0],
+           [-1,  1], [0,  1], [1,  1]]
+
+ENHANCE_STEPS = 2
+enhance_count = 0
+outside_pixel = '.'
+while enhance_count < ENHANCE_STEPS
+  enhance_count += 1
+  new_pixels = Set.new
+  x_min_l = x_min - 1
+  x_max_l = x_max + 1
+  y_min_l = y_min - 1
+  y_max_l = y_max + 1
+  (y_min_l..y_max_l).each do |y|
+    (x_min_l..x_max_l).each do |x|
+      alg_string = offsets.map do |os|
+        xos = x + os[0]
+        yos = y + os[1]
+        if xos < x_min || xos > x_max || yos < y_min || yos > y_max
+          outside_pixel
+        else
+          pixels.include?("#{xos}##{yos}") ? '#' : '.'
+        end
+      end.join
+      # puts "alg_string for #{x},#{y}: #{alg_string}"
+      new_val = alg_chars[algs_to_int(alg_string)]
+      # puts "new val for #{x},#{y}: #{new_val} char_index:#{algs_to_int(alg_string)}"
+      new_pixels << "#{x}##{y}" if new_val == '#'
+    end
+  end
+  pixels = new_pixels
+  # update outside pixel
+  outside_pixel = alg_chars[algs_to_int(outside_pixel * 6)]
+  x_min = x_min_l
+  x_max = x_max_l
+  y_min = y_min_l
+  y_max = y_max_l
+  puts "------------------------"
+  draw_pixels pixels, x_min, x_max, y_min, y_max
+  puts "outside pixel: #{outside_pixel}"
+end
+
+puts "result: #{pixels.size}"
