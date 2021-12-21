@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Player = Struct.new(:nb, :starting_pos, :curr_pos, :score) do
+  def initialize(nb, starting_pos)
+    self.nb = nb
+    self.starting_pos = starting_pos
+    self.curr_pos = starting_pos
+    self.score = 0
+  end
+
+  def move(amount)
+    self.curr_pos = ((curr_pos + amount - 1) % 10) + 1
+  end
+end
+
+def deterministic_die(roll_nb)
+  (roll_nb % 100) + 1
+end
+
+input_lines = File.readlines 'input/data.txt'
+players = input_lines.map do |line|
+  s = line.split ' '
+  Player.new s[1].to_i, s[4].to_i
+end
+
+game_won = false
+turn = 0
+die_cast = 0
+catch :game_won do
+  until game_won
+    players.each do |player|
+      sum_rolls = deterministic_die(die_cast) +
+                  deterministic_die(die_cast + 1) +
+                  deterministic_die(die_cast + 2)
+      player.move sum_rolls
+      player.score += player.curr_pos
+      die_cast += 3
+      throw :game_won if player.score >= 1000
+    end
+    # game_won = players.map(&:score).max >= 1000
+  end
+end
+losing_player = players.select { |p| p.score < 1000 }[0]
+puts players.inspect
+puts die_cast
+puts "result: #{losing_player.score * die_cast}"

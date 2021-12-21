@@ -1,0 +1,93 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Player = Struct.new(:nb, :starting_pos, :quantum_state, :wins_per_turn) do
+  def initialize(nb, starting_pos)
+    self.nb = nb
+    self.starting_pos = starting_pos
+    self.quantum_state = init_quantum_state
+    quantum_state[0][starting_pos - 1] = 1
+    self.wins_per_turn = Array.new 21, 0
+  end
+
+  def move(amount)
+    self.curr_pos = ((curr_pos + amount - 1) % 10) + 1
+  end
+end
+
+def deterministic_die(roll_nb)
+  (roll_nb % 100) + 1
+end
+
+def init_quantum_state
+  a = Array.new 32
+  a.each_with_index do |_e, i|
+    a[i] = Array.new 10, 0
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+players = input_lines.map do |line|
+  s = line.split ' '
+  Player.new s[1].to_i, s[4].to_i
+end
+
+players.each do |p|
+  # puts p.quantum_state.inspect
+end
+
+outcome_counts = { 3 => 1, 4 => 3, 5 => 6, 6 => 7, 7 => 6, 8 => 3, 9 => 1 }
+
+p1 = players[0]
+p2 = players[1]
+game_won = false
+turn = 0
+catch :game_won do
+  until game_won || turn > 20
+    players.each do |player|
+      new_state = init_quantum_state
+      player.quantum_state.each_with_index do |score_array, score|
+        # mult = (player.nb == 1 && turn == 0) ? 1 : 27 # 3
+        mult = 27
+        score_array.each_with_index do |dim_count, i|
+          next if dim_count.zero?
+
+          pos = i + 1
+          outcome_counts.entries.each do |steps, counts|
+            new_pos = ((pos + steps - 1) % 10) + 1
+            if (score + new_pos) < 21
+              new_state[score + new_pos][new_pos - 1] += (dim_count * counts * mult)
+            else
+              player.wins_per_turn[turn] += (dim_count * counts)
+            end
+          end
+        end
+      end
+      player.quantum_state = new_state
+      throw :game_won if game_won
+    end
+    turn += 1
+  end
+end
+# losing_player = players.select { |p| p.score < 1000 }[0]
+puts players.inspect
+puts turn
+puts p1.wins_per_turn.sum
+puts p2.wins_per_turn.sum
+wins_p1 = 0
+wins_p2 = 0
+p1.wins_per_turn.each_with_index do |c, t|
+  diff = c - p2.wins_per_turn[0..t-1].sum
+  wins_p1 += diff if diff > 0
+end
+p2.wins_per_turn.each_with_index do |c, t|
+  diff = c - p1.wins_per_turn[0..t].sum
+  wins_p2 += diff if diff > 0
+end
+puts wins_p1
+puts wins_p2
+
+# puts players[0].quantum_state.map { |sa| sa.sum }.sum
+# puts players[0].quantum_state.map { |sa| sa.sum }.sum
+# puts die_cast
+# puts "result: #{losing_player.score * die_cast}"
