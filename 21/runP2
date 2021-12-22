@@ -1,30 +1,24 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-Player = Struct.new(:nb, :starting_pos, :quantum_state, :wins_per_turn) do
+Player = Struct.new(:nb, :starting_pos, :wins) do
   def initialize(nb, starting_pos)
     self.nb = nb
     self.starting_pos = starting_pos
-    self.quantum_state = init_quantum_state
-    quantum_state[0][starting_pos - 1] = 1
-    self.wins_per_turn = Array.new 21, 0
-  end
-
-  def move(amount)
-    self.curr_pos = ((curr_pos + amount - 1) % 10) + 1
+    self.wins = 0
   end
 end
 
-State = Struct.new(:score_p1, :score_p2, :dim_count, :pos1, :pos2) {}
+outcome_counts = { 3 => 1, 4 => 3, 5 => 6, 6 => 7, 7 => 6, 8 => 3, 9 => 1 }
 
-def deterministic_die(roll_nb)
-  (roll_nb % 100) + 1
-end
-
-def init_quantum_state
-  a = Array.new 32
-  a.each_with_index do |_e, i|
-    a[i] = Array.new 10, 0
+def dirac_dice(dim_count, playerA, scoreA, posA, playerB, scoreB, posB, outcomes)
+  if scoreB > 20
+    playerB.wins += dim_count
+  else
+    outcomes.entries.each do |steps, counts|
+      new_pos = ((posA + steps - 1) % 10) + 1
+      dirac_dice(dim_count * counts, playerB, scoreB, posB, playerA, scoreA + new_pos, new_pos, outcomes)
+    end
   end
 end
 
@@ -34,55 +28,10 @@ players = input_lines.map do |line|
   Player.new s[1].to_i, s[4].to_i
 end
 
-# players.each do |p|
-# puts p.quantum_state.inspect
-# end
-
-outcome_counts = { 3 => 1, 4 => 3, 5 => 6, 6 => 7, 7 => 6, 8 => 3, 9 => 1 }
-
 p1 = players[0]
 p2 = players[1]
-states = [State.new(0, 0, 1, p1.starting_pos, p2.starting_pos)]
-p1_wins = 0
-p2_wins = 0
 
-curr_player = p1
-until states.empty?
-  puts "states.size: #{states.size}"
-  new_states = []
-  states.each do |state|
-    if state.score_p1 > 20
-      p1_wins += state.dim_count
-    elsif state.score_p2 > 20
-      p2_wins += state.dim_count
-    else
-      pos = curr_player == p1 ? state.pos1 : state.pos2
-      outcome_counts.entries.each do |steps, counts|
-        new_pos = ((pos + steps - 1) % 10) + 1
-        new_state = if curr_player == p1
-                      State.new(state.score_p1 + new_pos,
-                                state.score_p2,
-                                state.dim_count * counts,
-                                new_pos,
-                                state.pos2)
-                    else
-                      State.new(state.score_p1,
-                                state.score_p2 + new_pos,
-                                state.dim_count * counts,
-                                state.pos1,
-                                new_pos)
-                    end
-        new_states << new_state
-      end
-    end
-  end
-  curr_player = if curr_player == p1
-                  p2
-                else
-                  p1
-                end
-  states = new_states
-end
-
-puts p1_wins
-puts p2_wins
+dirac_dice(1, p1, 0, p1.starting_pos, p2, 0, p2.starting_pos, outcome_counts)
+puts p1.wins
+puts p2.wins
+puts "result: #{[p1.wins, p2.wins].max}"
