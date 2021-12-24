@@ -1,0 +1,699 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# input_lines = File.readlines 'input/data.txt'
+State = Struct.new(:cost, :roomA, :roomB, :roomC, :roomD, :l2, :l1, :ab, :bc, :cd, :r1, :r2) do
+  def sol?
+    (roomA == %i[A A A A]) &&
+      (roomB == %i[B B B B]) &&
+      (roomC == %i[C C C C]) &&
+      (roomD == %i[D D D D])
+  end
+
+  def incomplete_rooms
+    r = []
+    r.append ((roomA != %i[A A A A]) ? roomA : nil)
+    r.append ((roomB != %i[B B B B]) ? roomB : nil)
+    r.append ((roomC != %i[C C C C]) ? roomC : nil)
+    r.append ((roomD != %i[D D D D]) ? roomD : nil)
+  end
+
+  def deep_clone
+    s = self.clone
+    s.roomA = roomA.clone
+    s.roomB = roomB.clone
+    s.roomC = roomC.clone
+    s.roomD = roomD.clone
+    s
+  end
+
+  def roomA_clear
+    self.roomA.select { |e| e != (:A && nil) }.size == 0
+  end
+  def roomB_clear
+    self.roomB.select { |e| e != (:B && nil) }.size == 0
+  end
+  def roomC_clear
+    self.roomC.select { |e| e != (:C && nil) }.size == 0
+  end
+  def roomD_clear
+    self.roomD.select { |e| e != (:D && nil) }.size == 0
+  end
+  def roomA_depth
+    self.roomA.select { |e| e.nil? }.size
+  end
+  def roomB_depth
+    self.roomB.select { |e| e.nil? }.size
+  end
+  def roomC_depth
+    self.roomC.select { |e| e.nil? }.size
+  end
+  def roomD_depth
+    self.roomD.select { |e| e.nil? }.size
+  end
+
+  def room(nb)
+    case nb
+    when 0
+      roomA
+    when 1
+      roomB
+    when 2
+      roomC
+    when 3
+      roomD
+    end
+  end
+
+  def l2reachable?(room_nb)
+    case room_nb
+    when 0
+      l2.nil? && l1.nil?
+    when 1
+      l2.nil? && l1.nil? && ab.nil?
+    when 2
+      l2.nil? && l1.nil? && ab.nil? && bc.nil?
+    when 3
+      l2.nil? && l1.nil? && ab.nil? && bc.nil? && cd.nil?
+    end
+  end
+
+  def l1reachable?(room_nb)
+    case room_nb
+    when 0
+      l1.nil?
+    when 1
+      l1.nil? && ab.nil?
+    when 2
+      l1.nil? && ab.nil? && bc.nil?
+    when 3
+      l1.nil? && ab.nil? && bc.nil? && cd.nil?
+    end
+  end
+
+  def abreachable?(room_nb)
+    case room_nb
+    when 0
+      ab.nil?
+    when 1
+      ab.nil?
+    when 2
+      ab.nil? && bc.nil?
+    when 3
+      ab.nil? && bc.nil? && cd.nil?
+    end
+  end
+
+  def bcreachable?(room_nb)
+    case room_nb
+    when 0
+      ab.nil? && bc.nil?
+    when 1
+      bc.nil?
+    when 2
+      bc.nil?
+    when 3
+      bc.nil? && cd.nil?
+    end
+  end
+
+  def cdreachable?(room_nb)
+    case room_nb
+    when 0
+      ab.nil? && bc.nil? && cd.nil?
+    when 1
+      bc.nil? && cd.nil?
+    when 2
+      cd.nil?
+    when 3
+      cd.nil?
+    end
+  end
+
+  def r1reachable?(room_nb)
+    case room_nb
+    when 0
+      ab.nil? && bc.nil? && cd.nil? && r1.nil?
+    when 1
+      bc.nil? && cd.nil? && r1.nil?
+    when 2
+      cd.nil? && r1.nil?
+    when 3
+      r1.nil?
+    end
+  end
+
+  def r2reachable?(room_nb)
+    case room_nb
+    when 0
+      ab.nil? && bc.nil? && cd.nil? && r1.nil? && r2.nil?
+    when 1
+      bc.nil? && cd.nil? && r1.nil? && r2.nil?
+    when 2
+      cd.nil? && r1.nil? && r2.nil?
+    when 3
+      r1.nil? && r2.nil?
+    end
+  end
+
+  def impossible_sol?
+    # prune if possible
+    return true if cost > 45_000
+
+    false
+  end
+end
+
+def expand_states(state, states_to_expand, final_states)
+  if state.sol?
+    final_states << state
+  else
+    return if state.impossible_sol?
+
+    # states_to_expand = []
+    # states_to_expand = []
+    # move first of room if it is mixed to any reachable place in hall
+    # move from hall to your room if reachable and only includes peers or empty
+    # puts "initial state: #{state}"
+    rs = state.incomplete_rooms
+    rs.each_with_index do |r, index|
+      next if r.nil?
+
+      d, e = first_in_room r
+      next if e.nil?
+      # puts "first in room: r=#{r} d=#{d} e=#{e}"
+      # puts "#{rs} r=#{r} index=#{index}"
+      # puts "room=#{state.room index}"
+      # puts "d=#{d} index=#{index}"
+
+      if state.l2reachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = 2 + (index * 2) + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.l2 = e
+        # puts "l2: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.l1reachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = 1 + (index * 2) + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.l1 = e
+        # puts "l1: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.abreachable? index
+        # puts "initial state: #{state}"
+        # 0 - 1   1 - 1    2 - 3    3 - 5
+        new_state = state.deep_clone
+        moves = (-1 + (index * 2)).abs + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.ab = e
+        # puts "ab: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.bcreachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = (-3 + (index * 2)).abs + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.bc = e
+        # puts "bc: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.cdreachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = (-5 + (index * 2)).abs + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.cd = e
+        # puts "cd: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.r1reachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = (-7 + (index * 2)).abs + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.r1 = e
+        # puts "r1: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+      if state.r2reachable? index
+        # puts "initial state: #{state}"
+        new_state = state.deep_clone
+        moves = (-8 + (index * 2)).abs + d
+        new_state.cost += moves * cost(e)
+        room = new_state.room index
+        room[d-1] = nil
+        new_state.r2 = e
+        # puts "r2: #{new_state}"
+        # expand_states new_state, final_states
+        states_to_expand << new_state
+      end
+
+    end
+    unless state.l2.nil? || !state.l1.nil?
+      case state.l2
+      when :A
+        if state.roomA_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 2 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.l2 = nil
+          # puts "l2A: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 4 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.l2 = nil
+          # puts "l2B: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 6 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.l2 = nil
+          # puts "l2C: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 8 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.l2 = nil
+          # puts "l2D: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless state.l1.nil?
+      case state.l1
+      when :A
+        if state.roomA_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.l1 = nil
+          # puts "l1A: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.l1 = nil
+          # puts "l1B: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 5 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.l1 = nil
+          # puts "l1C: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 7 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          # puts "l1D: #{new_state}"
+          new_state.l1 = nil
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless state.ab.nil?
+      case state.ab
+      when :A
+        if state.roomA_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.ab = nil
+          # puts "abA: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.ab = nil
+          # puts "abB: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear && state.bc.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.ab = nil
+          # puts "abC: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear && state.bc.nil? && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 5 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.ab = nil
+          # puts "abD: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless state.bc.nil?
+      case state.bc
+      when :A
+        if state.roomA_clear && state.ab.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.bc = nil
+          # puts "bcA: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.bc = nil
+          # puts "bcB: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.bc = nil
+          # puts "bcC: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.bc = nil
+          # puts "bcD: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless state.cd.nil?
+      case state.cd
+      when :A
+        if state.roomA_clear && state.ab.nil? && state.bc.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 5 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.cd = nil
+          # puts "cdA: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear && state.bc.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.cd = nil
+          # puts "cdB: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.cd = nil
+          # puts "cdC: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.cd = nil
+          # puts "cdD: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless state.r1.nil?
+      case state.r1
+      when :A
+        if state.roomA_clear && state.ab.nil? && state.bc.nil? && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 7 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.r1 = nil
+          # puts "r1A: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear && state.bc.nil? && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 5 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.r1 = nil
+          # puts "r1B: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 3 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.r1 = nil
+          # puts "r1C: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 1 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.r1 = nil
+          # puts "r1D: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    unless !state.r1.nil? || state.r2.nil?
+      case state.r2
+      when :A
+        if state.roomA_clear && state.ab.nil? && state.bc.nil? && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 8 + state.roomA_depth
+          new_state.cost += moves * cost(:A)
+          new_state.roomA[state.roomA_depth] = :A
+          new_state.r2 = nil
+          # puts "r2A: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :B
+        if state.roomB_clear && state.bc.nil? && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 6 + state.roomB_depth
+          new_state.cost += moves * cost(:B)
+          new_state.roomB[state.roomB_depth] = :B
+          new_state.r2 = nil
+          # puts "r2B: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :C
+        if state.roomC_clear && state.cd.nil?
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 4 + state.roomC_depth
+          new_state.cost += moves * cost(:C)
+          new_state.roomC[state.roomC_depth] = :C
+          new_state.r2 = nil
+          # puts "r2C: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      when :D
+        if state.roomD_clear
+          # puts "initial state: #{state}"
+          new_state = state.deep_clone
+          moves = 2 + state.roomD_depth
+          new_state.cost += moves * cost(:D)
+          new_state.roomD[state.roomD_depth] = :D
+          new_state.r2 = nil
+          # puts "r2D: #{new_state}"
+          # expand_states new_state, final_states
+          states_to_expand << new_state
+        end
+      end
+    end
+    # puts "new states to expand: #{states_to_expand.size}"
+    # states_to_expand.each do |s|
+    #   expand_states s, final_states
+    # end
+    #return_states_to_expand += states_to_expand
+  end
+end
+
+def cost(a)
+  case a
+  when :A
+    1
+  when :B
+    10
+  when :C
+    100
+  when :D
+    1000
+  end
+end
+
+def first_in_room(room)
+  depth = 1
+  room.each do |e|
+    return [depth, e] unless e.nil?
+
+    depth += 1
+  end
+  [depth, nil]
+end
+
+final_states = []
+#example
+roomA = %i[B D D A]
+roomB = %i[C C B D]
+roomC = %i[B B A C]
+roomD = %i[D A C A]
+# data
+#roomA = %i[D D D C]
+#roomB = %i[A C B C]
+#roomC = %i[A B A B]
+#roomD = %i[D A C B]
+
+init = State.new 0, roomA, roomB, roomC, roomD, nil, nil, nil, nil, nil, nil, nil
+
+states_to_expand = [init]
+step = 0
+while !states_to_expand.empty? # && step < 2
+  new_states_to_expand = []
+  states_to_expand.each do |state|
+    expand_states state, new_states_to_expand, final_states
+  end
+  puts "#{Time.now}: new states to expand: #{new_states_to_expand.size}"
+  states_to_expand = new_states_to_expand
+  # puts states_to_expand.inspect
+  step += 1
+end
+
+puts "solutions: #{final_states.size}"
+puts final_states.map(&:cost)

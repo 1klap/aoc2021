@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Cuboid = Struct.new(:on, :xmin, :xmax, :ymin, :ymax, :zmin, :zmax) do
+  def self.parse(line)
+    s0 = line.split ' '
+    s1 = s0[1].split(',').map { |val_def| val_def.split('=')[1].split('..').map(&:to_i) }
+    Cuboid.new s0[0] == 'on', s1[0][0], s1[0][1], s1[1][0], s1[1][1], s1[2][0], s1[2][1]
+  end
+
+  def inside?(x, y, z)
+    (x >= xmin) && (x <= xmax) &&
+      (y >= ymin) && (y <= ymax) &&
+      (z >= zmin) && (z <= zmax)
+  end
+end
+
+def on?(x, y, z, cuboids)
+  cuboids.each do |cuboid|
+    return cuboid.on if cuboid.inside? x, y, z
+  end
+  false # off by default
+end
+
+input_lines = File.readlines 'input/data.txt'
+cuboids = input_lines.map do |line|
+  Cuboid.parse line
+end.reverse
+
+# puts cuboids.inspect
+
+CHECK_XMIN = -50
+CHECK_XMAX = 50
+CHECK_YMIN = -50
+CHECK_YMAX = 50
+CHECK_ZMIN = -50
+CHECK_ZMAX = 50
+
+on_count = 0
+(CHECK_XMIN..CHECK_XMAX).each do |x|
+  (CHECK_YMIN..CHECK_YMAX).each do |y|
+    (CHECK_ZMIN..CHECK_ZMAX).each do |z|
+      on_count += 1 if on? x, y, z, cuboids
+    end
+  end
+end
+
+puts on_count
