@@ -1,0 +1,3 @@
+inp x
+add x 3
+mul x -1

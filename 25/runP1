@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+def world_tick(floor)
+  # eastward first
+  right_shift_count = shift_right! floor
+  down_shift_count = shift_down! floor
+  right_shift_count + down_shift_count
+end
+
+def shift_right!(floor)
+  shiftpos = []
+  col_count = floor[0].size
+  floor.each_with_index do |a, y|
+    a.each_with_index do |c, x|
+      shiftpos << [x, y] if c == '>' && floor[y][(x + 1) % col_count].nil?
+    end
+  end
+  shiftpos.each do |tuple|
+    floor[tuple[1]][tuple[0]] = nil
+    floor[tuple[1]][(tuple[0] + 1) % col_count] = '>'
+  end
+  shiftpos.count
+end
+
+def shift_down!(floor)
+  shiftpos = []
+  row_count = floor.size
+  floor.each_with_index do |a, y|
+    a.each_with_index do |c, x|
+      shiftpos << [x, y] if c == 'v' && floor[(y + 1) % row_count][x].nil?
+    end
+  end
+  shiftpos.each do |tuple|
+    floor[tuple[1]][tuple[0]] = nil
+    floor[(tuple[1] + 1) % row_count][tuple[0]] = 'v'
+  end
+  shiftpos.count
+end
+
+def draw_map(floor)
+  floor.map do |a|
+    a.map do |c|
+      case c
+      when nil
+        '.'
+      else
+        c
+      end
+    end.join
+  end.join "\n"
+end
+
+lines = File.readlines 'input/data.txt'
+lines = lines.map(&:strip)
+floor = Array.new lines.size
+floor.each_with_index do |_a, y|
+  floor[y] = Array.new lines[0].size, nil
+end
+lines.each_with_index do |line, y|
+  line.chars.each_with_index do |c, x|
+    floor[y][x] = c if ['v', '>'].include?(c)
+  end
+end
+
+# puts floor.inspect
+puts draw_map floor
+steps = 0
+puts '==============='
+catch :standstill do
+  Kernel.loop do
+    steps += 1
+    shift_count = world_tick floor
+    # puts draw_map floor
+    # puts "==============="
+    throw :standstill if shift_count.zero?
+  end
+end
+
+puts draw_map floor
+puts steps

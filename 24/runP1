@@ -1,0 +1,119 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+ALU = Struct.new(:w, :x, :y, :z) do
+  def initialize
+    self.w = 0
+    self.x = 0
+    self.y = 0
+    self.z = 0
+  end
+
+  def execute(instructions, input)
+    input_index = 0
+    instructions.each_with_index do |instr, index|
+      # puts "instr #{index}: #{instr}"
+      is = instr.split ' '
+      case is[0]
+      when 'inp'
+        val = if (true if Integer(input[input_index]) rescue false)
+                input[input_index].to_i
+              else
+                input[input_index]
+              end
+        send "#{is[1]}=", val
+        input_index += 1
+      when 'add'
+        a = send is[1].to_s
+        b = if (true if Integer(is[2]) rescue false)
+              is[2].to_i
+            else
+              send is[2].to_s
+            end
+        # puts "a=#{a} b=#{b}"
+        if a.instance_of?(Integer) && b.instance_of?(Integer)
+          send "#{is[1]}=", b + a
+        else
+          send "#{is[1]}=", "(#{b}+#{a})"
+        end
+      when 'mul'
+        a = send is[1].to_s
+        b = if (true if Integer(is[2]) rescue false)
+              is[2].to_i
+            else
+              send is[2].to_s
+            end
+        # puts "a=#{a} b=#{b}"
+        if a.instance_of?(Integer) && b.instance_of?(Integer)
+          send "#{is[1]}=", b * a
+        else
+          send "#{is[1]}=", "(#{b}*#{a})"
+        end
+      when 'div'
+        a = send is[1].to_s
+        b = if (true if Integer(is[2]) rescue false)
+              is[2].to_i
+            else
+              send is[2].to_s
+            end
+        # puts "a=#{a} b=#{b}"
+        if a.instance_of?(Integer) && b.instance_of?(Integer)
+          send "#{is[1]}=", a / b
+        else
+          send "#{is[1]}=", "(#{a}/#{b})"
+        end
+      when 'mod'
+        a = send is[1].to_s
+        b = if (true if Integer(is[2]) rescue false)
+              is[2].to_i
+            else
+              send is[2].to_s
+            end
+        # puts "a=#{a} b=#{b}"
+        if a.instance_of?(Integer) && b.instance_of?(Integer)
+          send "#{is[1]}=", a % b
+        else
+          send "#{is[1]}=", "(#{a}%#{b})"
+        end
+      when 'eql'
+        a = send is[1].to_s
+        b = if (true if Integer(is[2]) rescue false)
+              is[2].to_i
+            else
+              send is[2].to_s
+            end
+        # puts "a=#{a} b=#{b}"
+        if a.instance_of?(Integer) && b.instance_of?(Integer)
+          send "#{is[1]}=", a == b ? 1 : 0
+        else
+          send "#{is[1]}=", "(#{a}==#{b})"
+        end
+      end
+      # puts inspect
+    end
+  end
+end
+
+# lines = File.read 'input/data.txt'
+
+lines = File.readlines 'input/data.txt'
+input = 'ABCDEFGHIJKLMN'
+# input = '99999999999999'
+
+
+alu = ALU.new
+alu.execute lines[0..50], input
+=begin
+99999999999999.downto(11111111111111) do |nb|
+  alu.w = 0
+  alu.x = 0
+  alu.y = 0
+  alu.z = 0
+  alu.execute lines, nb.to_s
+  if alu.z == 0
+    puts nb
+    return
+  end
+end
+=end
+puts alu.inspect
