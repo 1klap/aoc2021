@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'set'
+
 # input_lines = File.readlines 'input/data.txt'
 State = Struct.new(:cost, :roomA, :roomB, :roomC, :roomD, :l2, :l1, :ab, :bc, :cd, :r1, :r2) do
   def sol?
@@ -18,6 +20,15 @@ State = Struct.new(:cost, :roomA, :roomB, :roomC, :roomD, :l2, :l1, :ab, :bc, :c
     r.append ((roomD != %i[D D D D]) ? roomD : nil)
   end
 
+  def incomplete_room_indices
+    r = []
+    r.append ((roomA != %i[A A A A]) ? 0 : nil)
+    r.append ((roomB != %i[B B B B]) ? 1 : nil)
+    r.append ((roomC != %i[C C C C]) ? 2 : nil)
+    r.append ((roomD != %i[D D D D]) ? 3 : nil)
+    r
+  end
+
   def deep_clone
     s = self.clone
     s.roomA = roomA.clone
@@ -28,28 +39,64 @@ State = Struct.new(:cost, :roomA, :roomB, :roomC, :roomD, :l2, :l1, :ab, :bc, :c
   end
 
   def roomA_clear
-    self.roomA.select { |e| e != (:A && nil) }.size == 0
+    # self.roomA.select { |e| e != (:A && nil) }.size == 0
+    (roomA[0] == :A || roomA[0].nil?) &&
+      (roomA[1] == :A || roomA[1].nil?) &&
+      (roomA[2] == :A || roomA[2].nil?) &&
+      (roomA[3] == :A || roomA[3].nil?)
   end
   def roomB_clear
-    self.roomB.select { |e| e != (:B && nil) }.size == 0
+    # self.roomB.select { |e| e != (:B && nil) }.size == 0
+    (roomB[0] == :B || roomB[0].nil?) &&
+      (roomB[1] == :B || roomB[1].nil?) &&
+      (roomB[2] == :B || roomB[2].nil?) &&
+      (roomB[3] == :B || roomB[3].nil?)
   end
   def roomC_clear
-    self.roomC.select { |e| e != (:C && nil) }.size == 0
+    # self.roomC.select { |e| e != (:C && nil) }.size == 0
+    (roomC[0] == :C || roomC[0].nil?) &&
+      (roomC[1] == :C || roomC[1].nil?) &&
+      (roomC[2] == :C || roomC[2].nil?) &&
+      (roomC[3] == :C || roomC[3].nil?)
   end
   def roomD_clear
-    self.roomD.select { |e| e != (:D && nil) }.size == 0
+    # self.roomD.select { |e| e != (:D && nil) }.size == 0
+    (roomD[0] == :D || roomD[0].nil?) &&
+      (roomD[1] == :D || roomD[1].nil?) &&
+      (roomD[2] == :D || roomD[2].nil?) &&
+      (roomD[3] == :D || roomD[3].nil?)
   end
   def roomA_depth
-    self.roomA.select { |e| e.nil? }.size
+    # self.roomA.select { |e| e.nil? }.size
+    return 4 if self.roomA[3]==nil
+    return 3 if self.roomA[2]==nil
+    return 2 if self.roomA[1]==nil
+    return 1 if self.roomA[0]==nil
+    0
   end
   def roomB_depth
-    self.roomB.select { |e| e.nil? }.size
+    # self.roomB.select { |e| e.nil? }.size
+    return 4 if self.roomB[3]==nil
+    return 3 if self.roomB[2]==nil
+    return 2 if self.roomB[1]==nil
+    return 1 if self.roomB[0]==nil
+    0
   end
   def roomC_depth
-    self.roomC.select { |e| e.nil? }.size
+    # self.roomC.select { |e| e.nil? }.size
+    return 4 if self.roomC[3]==nil
+    return 3 if self.roomC[2]==nil
+    return 2 if self.roomC[1]==nil
+    return 1 if self.roomC[0]==nil
+    0
   end
   def roomD_depth
-    self.roomD.select { |e| e.nil? }.size
+    # self.roomD.select { |e| e.nil? }.size
+    return 4 if self.roomD[3]==nil
+    return 3 if self.roomD[2]==nil
+    return 2 if self.roomD[1]==nil
+    return 1 if self.roomD[0]==nil
+    0
   end
 
   def room(nb)
@@ -158,7 +205,7 @@ State = Struct.new(:cost, :roomA, :roomB, :roomC, :roomD, :l2, :l1, :ab, :bc, :c
 
   def impossible_sol?
     # prune if possible
-    return true if cost > 45_000
+    # return true if cost > 45_000
 
     false
   end
@@ -175,12 +222,24 @@ def expand_states(state, states_to_expand, final_states)
     # move first of room if it is mixed to any reachable place in hall
     # move from hall to your room if reachable and only includes peers or empty
     # puts "initial state: #{state}"
-    rs = state.incomplete_rooms
-    rs.each_with_index do |r, index|
-      next if r.nil?
+    # rs = state.incomplete_rooms
+    rs = state.incomplete_room_indices
+    rs.each do |index|
+      next if index.nil?
 
-      d, e = first_in_room r
+      # d, e = first_in_room r
+      d, e = first_in_room state.room index
       next if e.nil?
+      case index
+      when 0
+        next if state.roomA_clear
+      when 1
+        next if state.roomB_clear
+      when 2
+        next if state.roomC_clear
+      when 3
+        next if state.roomD_clear
+      end
       # puts "first in room: r=#{r} d=#{d} e=#{e}"
       # puts "#{rs} r=#{r} index=#{index}"
       # puts "room=#{state.room index}"
@@ -281,43 +340,43 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 2 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.l2 = nil
           # puts "l2A: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :B
-        if state.roomB_clear
+        if state.roomB_clear && state.ab.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 4 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.l2 = nil
           # puts "l2B: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :C
-        if state.roomC_clear
+        if state.roomC_clear && state.ab.nil? && state.bc.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 6 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.l2 = nil
           # puts "l2C: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :D
-        if state.roomD_clear
+        if state.roomD_clear && state.ab.nil? && state.bc.nil? && state.cd.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 8 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.l2 = nil
           # puts "l2D: #{new_state}"
           # expand_states new_state, final_states
@@ -333,43 +392,43 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.l1 = nil
           # puts "l1A: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :B
-        if state.roomB_clear
+        if state.roomB_clear && state.ab.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 3 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.l1 = nil
           # puts "l1B: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :C
-        if state.roomC_clear
+        if state.roomC_clear && state.ab.nil? && state.bc.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 5 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.l1 = nil
           # puts "l1C: #{new_state}"
           # expand_states new_state, final_states
           states_to_expand << new_state
         end
       when :D
-        if state.roomD_clear
+        if state.roomD_clear && state.ab.nil? && state.bc.nil? && state.cd.nil?
           # puts "initial state: #{state}"
           new_state = state.deep_clone
           moves = 7 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           # puts "l1D: #{new_state}"
           new_state.l1 = nil
           # expand_states new_state, final_states
@@ -385,7 +444,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.ab = nil
           # puts "abA: #{new_state}"
           # expand_states new_state, final_states
@@ -397,7 +456,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.ab = nil
           # puts "abB: #{new_state}"
           # expand_states new_state, final_states
@@ -409,7 +468,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 3 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.ab = nil
           # puts "abC: #{new_state}"
           # expand_states new_state, final_states
@@ -421,7 +480,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 5 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.ab = nil
           # puts "abD: #{new_state}"
           # expand_states new_state, final_states
@@ -437,7 +496,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 3 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.bc = nil
           # puts "bcA: #{new_state}"
           # expand_states new_state, final_states
@@ -449,7 +508,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.bc = nil
           # puts "bcB: #{new_state}"
           # expand_states new_state, final_states
@@ -461,7 +520,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.bc = nil
           # puts "bcC: #{new_state}"
           # expand_states new_state, final_states
@@ -473,7 +532,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 3 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.bc = nil
           # puts "bcD: #{new_state}"
           # expand_states new_state, final_states
@@ -489,7 +548,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 5 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.cd = nil
           # puts "cdA: #{new_state}"
           # expand_states new_state, final_states
@@ -501,7 +560,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 3 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.cd = nil
           # puts "cdB: #{new_state}"
           # expand_states new_state, final_states
@@ -513,7 +572,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.cd = nil
           # puts "cdC: #{new_state}"
           # expand_states new_state, final_states
@@ -525,7 +584,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.cd = nil
           # puts "cdD: #{new_state}"
           # expand_states new_state, final_states
@@ -541,7 +600,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 7 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.r1 = nil
           # puts "r1A: #{new_state}"
           # expand_states new_state, final_states
@@ -553,7 +612,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 5 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.r1 = nil
           # puts "r1B: #{new_state}"
           # expand_states new_state, final_states
@@ -565,7 +624,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 3 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.r1 = nil
           # puts "r1C: #{new_state}"
           # expand_states new_state, final_states
@@ -577,7 +636,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 1 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.r1 = nil
           # puts "r1D: #{new_state}"
           # expand_states new_state, final_states
@@ -593,7 +652,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 8 + state.roomA_depth
           new_state.cost += moves * cost(:A)
-          new_state.roomA[state.roomA_depth] = :A
+          new_state.roomA[state.roomA_depth - 1] = :A
           new_state.r2 = nil
           # puts "r2A: #{new_state}"
           # expand_states new_state, final_states
@@ -605,7 +664,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 6 + state.roomB_depth
           new_state.cost += moves * cost(:B)
-          new_state.roomB[state.roomB_depth] = :B
+          new_state.roomB[state.roomB_depth - 1] = :B
           new_state.r2 = nil
           # puts "r2B: #{new_state}"
           # expand_states new_state, final_states
@@ -617,7 +676,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 4 + state.roomC_depth
           new_state.cost += moves * cost(:C)
-          new_state.roomC[state.roomC_depth] = :C
+          new_state.roomC[state.roomC_depth - 1] = :C
           new_state.r2 = nil
           # puts "r2C: #{new_state}"
           # expand_states new_state, final_states
@@ -629,7 +688,7 @@ def expand_states(state, states_to_expand, final_states)
           new_state = state.deep_clone
           moves = 2 + state.roomD_depth
           new_state.cost += moves * cost(:D)
-          new_state.roomD[state.roomD_depth] = :D
+          new_state.roomD[state.roomD_depth - 1] = :D
           new_state.r2 = nil
           # puts "r2D: #{new_state}"
           # expand_states new_state, final_states
@@ -670,22 +729,23 @@ end
 
 final_states = []
 #example
-roomA = %i[B D D A]
-roomB = %i[C C B D]
-roomC = %i[B B A C]
-roomD = %i[D A C A]
+# roomA = %i[B D D A]
+# roomB = %i[C C B D]
+# roomC = %i[B B A C]
+# roomD = %i[D A C A]
 # data
-#roomA = %i[D D D C]
-#roomB = %i[A C B C]
-#roomC = %i[A B A B]
-#roomD = %i[D A C B]
+roomA = %i[D D D C]
+roomB = %i[A C B C]
+roomC = %i[A B A B]
+roomD = %i[D A C B]
 
 init = State.new 0, roomA, roomB, roomC, roomD, nil, nil, nil, nil, nil, nil, nil
 
-states_to_expand = [init]
+states_to_expand = Set.new # [init]
+states_to_expand << init
 step = 0
 while !states_to_expand.empty? # && step < 2
-  new_states_to_expand = []
+  new_states_to_expand = Set.new # []
   states_to_expand.each do |state|
     expand_states state, new_states_to_expand, final_states
   end
@@ -696,4 +756,4 @@ while !states_to_expand.empty? # && step < 2
 end
 
 puts "solutions: #{final_states.size}"
-puts final_states.map(&:cost)
+puts "result: #{final_states.map(&:cost).min}"
