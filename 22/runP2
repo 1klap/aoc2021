@@ -14,79 +14,69 @@ Cuboid = Struct.new(:on, :xmin, :xmax, :ymin, :ymax, :zmin, :zmax) do
       (z >= zmin) && (z <= zmax)
   end
 
+  def intersection_x(other)
+    [xmin, other.xmin].max..[xmax, other.xmax].min
+  end
+
+  def intersection_y(other)
+    [ymin, other.ymin].max..[ymax, other.ymax].min
+  end
+
+  def intersection_z(other)
+    [zmin, other.zmin].max..[zmax, other.zmax].min
+  end
+
+  def intersect?(other)
+    intersection_x(other).size.positive? &&
+      intersection_y(other).size.positive? &&
+      intersection_z(other).size.positive?
+  end
+
+  def clip_inside(other)
+    # return 3 to 6 cuboids depending on intersection
+    r = []
+    ix = intersection_x other
+    iy = intersection_y other
+    iz = intersection_z other
+
+    r << Cuboid.new(true, xmin, xmax, ymin, ymax, iz.end + 1, zmax) if iz.end < zmax
+    r << Cuboid.new(true, xmin, xmax, ymin, ymax, zmin, iz.begin - 1) if iz.begin > zmin
+    r << Cuboid.new(true, xmin, xmax, iy.end + 1, ymax, iz.begin, iz.end) if iy.end < ymax
+    r << Cuboid.new(true, xmin, xmax, ymin, iy.begin - 1, iz.begin, iz.end) if iy.begin > ymin
+    r << Cuboid.new(true, ix.end + 1, xmax, iy.begin, iy.end, iz.begin, iz.end) if ix.end < xmax
+    r << Cuboid.new(true, xmin, ix.begin - 1, iy.begin, iy.end, iz.begin, iz.end) if ix.begin > xmin
+    r
+  end
+
   def on_count
     if on
-      (xmax - xmin).abs * (ymax - ymin).abs * (zmax - zmin).abs
-    else
+      (xmax + 1 - xmin).abs * (ymax + 1 - ymin).abs * (zmax + 1 - zmin).abs
+    else 
       0
     end
   end
 end
 
-ComposedCuboid = Struct.new(:cuboid1, :cuboid2, :op, :inter) do
-  # assumption, cuboid1 is always simple
-  def initialize(cuboid1, cuboid2, op)
-    self.cuboid1 = cuboid1
-    self.cuboid2 = cuboid2
-    self.op = op
-    if op == :union
-      self.inter = if cuboid2.instance_of?(Cuboid)
-                     Cuboid.new(self.cuboid1.on,
-                                [cuboid1.xmin, cuboid2.xmin].max,
-                                [cuboid1.xmax, cuboid2.xmax].min,
-                                [cuboid1.ymin, cuboid2.ymin].max,
-                                [cuboid1.ymax, cuboid2.ymax].min,
-                                [cuboid1.zmin, cuboid2.zmin].max,
-                                [cuboid1.zmax, cuboid2.zmax].min)
-                   else
-                     ComposedCuboid.new cuboid1, cuboid2, :inter
-                   end
-    end
-  end
-
-  def on_count
-    case op
-    when :union
-      cuboid1.on_count + cuboid2.on_count - inter.on_count
-    when :inter
-      # inter.on_count
-      if cuboid2.instance_of?(Cuboid)
-        if cuboid1.on && cuboid2.on
-          overlap = Cuboid.new(cuboid1.on,
-                               [cuboid1.xmin, cuboid2.xmin].max,
-                               [cuboid1.xmax, cuboid2.xmax].min,
-                               [cuboid1.ymin, cuboid2.ymin].max,
-                               [cuboid1.ymax, cuboid2.ymax].min,
-                               [cuboid1.zmin, cuboid2.zmin].max,
-                               [cuboid1.zmax, cuboid2.zmax].min)
-          overlap.on_count
-        else
-          0
-        end
-      else
-        cuboid2.cuboid1.on_count + cuboid2.cuboid2.on_count - cuboid2.inter.on_count
-      end
-    end
-  end
-
-  def inspect
-    "<Cuboid op=#{op} on_count=#{on_count} c1=#{cuboid1.inspect} c2=#{cuboid2.inspect}>"
-  end
-end
-# def on?(x, y, z, cuboids)
-#   cuboids.each do |cuboid|
-#     return cuboid.on if cuboid.inside? x, y, z
-#   end
-#   false # off by default
-# end
 def merge_cuboids(cuboids)
-  cuboids.reduce(nil) do |memo, cuboid|
-    if memo.nil?
-      cuboid
-    else
-      ComposedCuboid.new cuboid, memo, :union
+  merged_cuboids = []
+  cuboids.each do |cuboid|
+    cuboids_to_add = []
+    cuboids_to_remove = []
+    merged_cuboids.each do |merged_cuboid|
+      next unless cuboid.intersect? merged_cuboid
+
+      # puts "intersection: #{cuboid} with #{merged_cuboid}"
+      cuboids_to_remove << merged_cuboid
+      # calc intersecting cuboids into inside and outside
+      # drop inside intersection
+      # add outside to cuboids_to_add
+      cuboids_to_add += merged_cuboid.clip_inside(cuboid)
     end
+    cuboids_to_add << cuboid if cuboid.on
+    merged_cuboids -= cuboids_to_remove
+    merged_cuboids += cuboids_to_add
   end
+  merged_cuboids
 end
 
 input_lines = File.readlines 'input/data.txt'
@@ -94,25 +84,6 @@ cuboids = input_lines.map do |line|
   Cuboid.parse line
 end
 
-outer_cuboid = merge_cuboids cuboids
-puts outer_cuboid.inspect
-
-puts outer_cuboid.on_count
-
-# CHECK_XMIN = -50
-# CHECK_XMAX = 50
-# CHECK_YMIN = -50
-# CHECK_YMAX = 50
-# CHECK_ZMIN = -50
-# CHECK_ZMAX = 50
-#
-# on_count = 0
-# (CHECK_XMIN..CHECK_XMAX).each do |x|
-#   (CHECK_YMIN..CHECK_YMAX).each do |y|
-#     (CHECK_ZMIN..CHECK_ZMAX).each do |z|
-#       on_count += 1 if on? x, y, z, cuboids
-#     end
-#   end
-# end
-#
-# puts on_count
+all_cuboids = merge_cuboids cuboids
+# puts all_cuboids.inspect
+puts all_cuboids.map(&:on_count).sum

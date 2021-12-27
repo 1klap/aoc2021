@@ -1,0 +1,118 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+Cuboid = Struct.new(:on, :xmin, :xmax, :ymin, :ymax, :zmin, :zmax) do
+  def self.parse(line)
+    s0 = line.split ' '
+    s1 = s0[1].split(',').map { |val_def| val_def.split('=')[1].split('..').map(&:to_i) }
+    Cuboid.new s0[0] == 'on', s1[0][0], s1[0][1], s1[1][0], s1[1][1], s1[2][0], s1[2][1]
+  end
+
+  def inside?(x, y, z)
+    (x >= xmin) && (x <= xmax) &&
+      (y >= ymin) && (y <= ymax) &&
+      (z >= zmin) && (z <= zmax)
+  end
+
+  def on_count
+    if on
+      (xmax - xmin).abs * (ymax - ymin).abs * (zmax - zmin).abs
+    else
+      0
+    end
+  end
+end
+
+ComposedCuboid = Struct.new(:cuboid1, :cuboid2, :op, :inter) do
+  # assumption, cuboid1 is always simple
+  def initialize(cuboid1, cuboid2, op)
+    self.cuboid1 = cuboid1
+    self.cuboid2 = cuboid2
+    self.op = op
+    if op == :union
+      self.inter = if cuboid2.instance_of?(Cuboid)
+                     Cuboid.new(self.cuboid1.on,
+                                [cuboid1.xmin, cuboid2.xmin].max,
+                                [cuboid1.xmax, cuboid2.xmax].min,
+                                [cuboid1.ymin, cuboid2.ymin].max,
+                                [cuboid1.ymax, cuboid2.ymax].min,
+                                [cuboid1.zmin, cuboid2.zmin].max,
+                                [cuboid1.zmax, cuboid2.zmax].min)
+                   else
+                     ComposedCuboid.new cuboid1, cuboid2, :inter
+                   end
+    end
+  end
+
+  def on_count
+    case op
+    when :union
+      cuboid1.on_count + cuboid2.on_count - inter.on_count
+    when :inter
+      # inter.on_count
+      if cuboid2.instance_of?(Cuboid)
+        if cuboid1.on && cuboid2.on
+          overlap = Cuboid.new(cuboid1.on,
+                               [cuboid1.xmin, cuboid2.xmin].max,
+                               [cuboid1.xmax, cuboid2.xmax].min,
+                               [cuboid1.ymin, cuboid2.ymin].max,
+                               [cuboid1.ymax, cuboid2.ymax].min,
+                               [cuboid1.zmin, cuboid2.zmin].max,
+                               [cuboid1.zmax, cuboid2.zmax].min)
+          overlap.on_count
+        else
+          0
+        end
+      else
+        cuboid2.cuboid1.on_count + cuboid2.cuboid2.on_count - cuboid2.inter.on_count
+      end
+    end
+  end
+
+  def inspect
+    "<Cuboid op=#{op} on_count=#{on_count} c1=#{cuboid1.inspect} c2=#{cuboid2.inspect}>"
+  end
+end
+# def on?(x, y, z, cuboids)
+#   cuboids.each do |cuboid|
+#     return cuboid.on if cuboid.inside? x, y, z
+#   end
+#   false # off by default
+# end
+def merge_cuboids(cuboids)
+  cuboids.reduce(nil) do |memo, cuboid|
+    if memo.nil?
+      cuboid
+    else
+      ComposedCuboid.new cuboid, memo, :union
+    end
+  end
+end
+
+input_lines = File.readlines 'input/data.txt'
+cuboids = input_lines.map do |line|
+  Cuboid.parse line
+end
+
+outer_cuboid = merge_cuboids cuboids
+puts outer_cuboid.inspect
+
+puts outer_cuboid.on_count
+
+# CHECK_XMIN = -50
+# CHECK_XMAX = 50
+# CHECK_YMIN = -50
+# CHECK_YMAX = 50
+# CHECK_ZMIN = -50
+# CHECK_ZMAX = 50
+#
+# on_count = 0
+# (CHECK_XMIN..CHECK_XMAX).each do |x|
+#   (CHECK_YMIN..CHECK_YMAX).each do |y|
+#     (CHECK_ZMIN..CHECK_ZMAX).each do |z|
+#       on_count += 1 if on? x, y, z, cuboids
+#     end
+#   end
+# end
+#
+# puts on_count
