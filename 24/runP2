@@ -98,11 +98,10 @@ end
 
 lines = File.readlines 'input/data.txt'
 # input = 'ABCDEFGHIJKLMN'
-input = '39494195799979'
+input = '13161151139617'
 
 alu = ALU.new
 alu.execute lines, input
 puts alu.inspect
 puts "result: #{input}"
 puts "see spreadsheet for explanation"
-

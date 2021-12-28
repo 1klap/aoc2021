@@ -97,12 +97,27 @@ end
 # lines = File.read 'input/data.txt'
 
 lines = File.readlines 'input/data.txt'
-# input = 'ABCDEFGHIJKLMN'
-input = '39494195799979'
+input = 'ABCDEFGHIJKLMN'
+input = '12345678912345'
+input = '99983995836799'
 
 alu = ALU.new
 alu.execute lines, input
-puts alu.inspect
-puts "result: #{input}"
-puts "see spreadsheet for explanation"
 
+=begin
+alu = ALU.new
+alu.execute lines[0..50], input
+99_999_999_999_999.downto(11_111_111_111_111) do |nb|
+  puts nb
+  alu.w = 0
+  alu.x = 0
+  alu.y = 0
+  alu.z = 0
+  alu.execute lines, nb.to_s
+  if alu.z.zero?
+    puts nb
+    break
+  end
+end
+=end
+puts alu.inspect
